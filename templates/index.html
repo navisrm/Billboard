@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Stock Billboard</title>
+  <style>
+    body {
+      background: #0b0f14;
+      color: #f2f2f2;
+      font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 40px;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 400;
+      color: #8899a6;
+      margin-bottom: 8px;
+    }
+    #updated-at {
+      color: #556472;
+      margin-bottom: 32px;
+      font-size: 1rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: #131922;
+      border-radius: 12px;
+      padding: 24px 28px;
+    }
+    .ticker {
+      font-size: 1.5rem;
+      color: #8899a6;
+      letter-spacing: 1px;
+    }
+    .price {
+      font-size: 3rem;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    .change {
+      font-size: 1.25rem;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    .change.up {
+      color: #16c784;
+    }
+    .change.down {
+      color: #ea3943;
+    }
+    .stale {
+      opacity: 0.5;
+    }
+    #market-status {
+      position: fixed;
+      top: 20px;
+      right: 28px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: #131922;
+    }
+    #market-status.open {
+      color: #16c784;
+    }
+    #market-status.closed {
+      color: #ea3943;
+    }
+  </style>
+</head>
+<body>
+  <div id="market-status"></div>
+  <h1>Stock Billboard</h1>
+  <div id="updated-at">Loading…</div>
+  <div class="grid" id="grid">
+    {% for ticker in tickers %}
+    <div class="card" id="card-{{ ticker }}">
+      <div class="ticker">{{ ticker }}</div>
+      <div class="price" id="price-{{ ticker }}">–</div>
+      <div class="change" id="change-{{ ticker }}"></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    const REFRESH_MS = 10000;
+
+    function formatPrice(value) {
+      return typeof value === "number" ? `$${value.toFixed(2)}` : "–";
+    }
+
+    function formatChange(change, changePercent) {
+      const arrow = change >= 0 ? "▲" : "▼";
+      const sign = change >= 0 ? "+" : "";
+      return `${arrow} ${sign}${change.toFixed(2)} (${sign}${changePercent.toFixed(2)}%)`;
+    }
+
+    async function refresh() {
+      try {
+        const res = await fetch("/api/prices");
+        const data = await res.json();
+        const prices = data.prices || {};
+        const hasPrices = Object.keys(prices).length > 0;
+
+        const statusEl = document.getElementById("market-status");
+        statusEl.textContent = data.market_open ? "MARKET OPEN" : "MARKET CLOSED";
+        statusEl.classList.toggle("open", !!data.market_open);
+        statusEl.classList.toggle("closed", !data.market_open);
+
+        document.getElementById("updated-at").textContent = data.updated_at
+          ? `Last updated: ${new Date(data.updated_at * 1000).toLocaleTimeString()}`
+          : "Waiting for first price fetch…";
+
+        for (const [ticker, data] of Object.entries(prices)) {
+          const priceEl = document.getElementById(`price-${ticker}`);
+          const changeEl = document.getElementById(`change-${ticker}`);
+          const card = document.getElementById(`card-${ticker}`);
+          if (priceEl) {
+            priceEl.textContent = formatPrice(data.price);
+            changeEl.textContent = formatChange(data.change, data.change_percent);
+            changeEl.classList.toggle("up", data.change >= 0);
+            changeEl.classList.toggle("down", data.change < 0);
+            card.classList.remove("stale");
+          }
+        }
+
+        if (!hasPrices) return;
+      } catch (err) {
+        document.getElementById("updated-at").textContent = "Unable to reach server — showing last known prices.";
+        document.querySelectorAll(".card").forEach((c) => c.classList.add("stale"));
+      }
+    }
+
+    refresh();
+    setInterval(refresh, REFRESH_MS);
+  </script>
+</body>
+</html>
