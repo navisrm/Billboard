@@ -13,10 +13,12 @@ from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
 from stock_fetcher import get_prices, get_tickers
+from weather_fetcher import get_weather
 
 MARKET_TZ = ZoneInfo("America/New_York")
 MARKET_OPEN = dt_time(9, 30)
 MARKET_CLOSE = dt_time(16, 0)
+WEATHER_INTERVAL_SECONDS = 600
 
 
 def is_market_open() -> bool:
@@ -29,7 +31,7 @@ load_dotenv()
 
 FETCH_INTERVAL_SECONDS = 10
 
-state = {"prices": {}, "updated_at": None}
+state = {"prices": {}, "updated_at": None, "weather": None}
 state_lock = asyncio.Lock()
 
 templates = Jinja2Templates(directory="templates")
@@ -48,11 +50,24 @@ async def refresh_loop():
         await asyncio.sleep(FETCH_INTERVAL_SECONDS)
 
 
+async def weather_loop():
+    while True:
+        try:
+            weather = await asyncio.to_thread(get_weather)
+            async with state_lock:
+                state["weather"] = weather
+        except Exception as exc:
+            print(f"Failed to refresh weather: {exc}")
+        await asyncio.sleep(WEATHER_INTERVAL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(refresh_loop())
+    price_task = asyncio.create_task(refresh_loop())
+    weather_task = asyncio.create_task(weather_loop())
     yield
-    task.cancel()
+    price_task.cancel()
+    weather_task.cancel()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -70,6 +85,7 @@ async def api_prices():
             "prices": state["prices"],
             "updated_at": state["updated_at"],
             "market_open": is_market_open(),
+            "weather": state["weather"],
         })
 
 

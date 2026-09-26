@@ -73,9 +73,35 @@
     #market-status.closed {
       color: #ea3943;
     }
+    #weather {
+      position: fixed;
+      top: 20px;
+      left: 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #131922;
+      border-radius: 8px;
+      padding: 8px 16px;
+    }
+    #weather .icon {
+      font-size: 2rem;
+    }
+    #weather .details {
+      line-height: 1.3;
+    }
+    #weather .temp {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    #weather .desc {
+      font-size: 0.9rem;
+      color: #8899a6;
+    }
   </style>
 </head>
 <body>
+  <div id="weather"></div>
   <div id="market-status"></div>
   <h1>Stock Billboard</h1>
   <div id="updated-at">Loading…</div>
@@ -113,6 +139,17 @@
         statusEl.textContent = data.market_open ? "MARKET OPEN" : "MARKET CLOSED";
         statusEl.classList.toggle("open", !!data.market_open);
         statusEl.classList.toggle("closed", !data.market_open);
+
+        const weatherEl = document.getElementById("weather");
+        if (data.weather) {
+          const w = data.weather;
+          weatherEl.innerHTML = `
+            <span class="icon">${w.icon}</span>
+            <span class="details">
+              <div class="temp">${Math.round(w.temperature)}°C</div>
+              <div class="desc">${w.location} · ${w.description}</div>
+            </span>`;
+        }
 
         document.getElementById("updated-at").textContent = data.updated_at
           ? `Last updated: ${new Date(data.updated_at * 1000).toLocaleTimeString()}`
