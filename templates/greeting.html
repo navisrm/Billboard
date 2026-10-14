@@ -8,69 +8,178 @@
       height: 100%;
     }
     body {
-      background: #0b0f14;
+      background: #000;
       color: #f2f2f2;
       font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
       margin: 0;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
       cursor: none;
       overflow: hidden;
     }
+    header {
+      background: #0b0f14;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2.5vh 4vw;
+    }
     #greeting {
-      font-size: 7vw;
+      font-size: 3.8vw;
       font-weight: 300;
       margin: 0;
     }
     #clock {
-      font-size: 2.2vw;
+      font-size: 1.5vw;
       color: #8899a6;
-      margin-top: 1vh;
+      margin-top: 0.6vh;
     }
     #weather {
       display: flex;
       align-items: center;
-      gap: 3vw;
-      margin-top: 8vh;
+      gap: 1.5vw;
     }
     #weather .icon {
-      font-size: 9vw;
-    }
-    #weather .details {
-      text-align: left;
+      font-size: 4.5vw;
     }
     #weather .temp {
-      font-size: 6vw;
+      font-size: 3.2vw;
       font-weight: 600;
       line-height: 1;
     }
     #weather .desc {
-      font-size: 2.2vw;
-      margin-top: 1vh;
+      font-size: 1.3vw;
+      margin-top: 0.5vh;
     }
     #weather .meta {
-      font-size: 1.6vw;
+      font-size: 1vw;
       color: #8899a6;
-      margin-top: 0.5vh;
+      margin-top: 0.3vh;
+    }
+    main {
+      flex: 1;
+      background: #000;
+      padding: 2.5vh 4vw 2vh;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.2vh;
+    }
+    .section-title {
+      font-size: 1vw;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #8899a6;
+    }
+    #page-dots {
+      display: flex;
+      gap: 0.6vw;
+    }
+    #page-dots span {
+      width: 0.6vw;
+      height: 0.6vw;
+      border-radius: 50%;
+      background: #2a333d;
+      transition: background 0.8s ease;
+    }
+    #page-dots span.active {
+      background: #8899a6;
+    }
+    #news {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      transition: opacity 0.8s ease;
+    }
+    #news.fading {
+      opacity: 0;
+    }
+    .story {
+      display: flex;
+      align-items: baseline;
+      gap: 1.5vw;
+      border-top: 1px solid #1c232c;
+      padding: 1.5vh 0;
+    }
+    .story .tag {
+      flex: none;
+      width: 8.5vw;
+      font-size: 0.85vw;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .story .tag.ca_gov { color: #ff6b6b; }
+    .story .tag.us_gov { color: #6ea8ff; }
+    .story .tag.health { color: #4fd1a5; }
+    .story .tag.deals { color: #f5b84a; }
+    .story .title {
+      flex: 1;
+      min-width: 0;
+      font-size: 1.9vw;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .story .meta {
+      flex: none;
+      font-size: 0.95vw;
+      color: #6b7a87;
+    }
+    #news-status {
+      font-size: 1.3vw;
+      color: #6b7a87;
     }
   </style>
 </head>
 <body data-name="{{ name }}">
-  <h1 id="greeting"></h1>
-  <div id="clock"></div>
-  <div id="weather"><div class="meta">Loading weather…</div></div>
+  <header>
+    <div>
+      <h1 id="greeting"></h1>
+      <div id="clock"></div>
+    </div>
+    <div id="weather"><div class="meta">Loading weather…</div></div>
+  </header>
+
+  <main>
+    <div class="section-head">
+      <div class="section-title">Top Stories</div>
+      <div id="page-dots"></div>
+    </div>
+    <div id="news"><div id="news-status">Loading news…</div></div>
+  </main>
 
   <script>
     const NAME = document.body.dataset.name;
     const WEATHER_REFRESH_MS = 60000;
+    // The server only hits GNews every 90 min; this just picks up its cached result.
+    const NEWS_REFRESH_MS = 5 * 60000;
+    const PAGE_MS = 15000;
+    const FADE_MS = 800;
+    // Long headlines shrink the screen's titles down to this fraction of normal size before being cut off.
+    const MIN_TITLE_SCALE = 0.85;
+
+    const newsEl = document.getElementById("news");
+    let articles = [];
+    let pages = [];
+    let pageIndex = 0;
 
     function greetingFor(hour) {
       if (hour < 12) return "Good Morning";
       if (hour < 17) return "Good Afternoon";
       return "Good Evening";
+    }
+
+    function timeAgo(iso) {
+      const minutes = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.round(minutes / 60);
+      return hours < 24 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
     }
 
     function tick() {
@@ -91,7 +200,7 @@
           <span class="details">
             <div class="temp">${Math.round(w.temperature)}°C</div>
             <div class="desc">${w.description}</div>
-            <div class="meta">Feels like ${Math.round(w.feels_like)}° · H ${Math.round(w.high)}° / L ${Math.round(w.low)}°</div>
+            <div class="meta">Feels ${Math.round(w.feels_like)}° · H ${Math.round(w.high)}° / L ${Math.round(w.low)}°</div>
             <div class="meta">${w.location}</div>
           </span>`;
       } catch (err) {
@@ -99,10 +208,103 @@
       }
     }
 
+    // Headlines come from a third party, so build with textContent rather than innerHTML.
+    function makeStory(a) {
+      const story = document.createElement("div");
+      story.className = "story";
+      const tag = document.createElement("div");
+      tag.className = `tag ${a.topic_key}`;
+      tag.textContent = a.topic;
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = a.title;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = `${a.source} · ${timeAgo(a.published_at)}`;
+      story.append(tag, title, meta);
+      return story;
+    }
+
+    // Shrink every title on the screen together until the longest fits, so rows stay one size.
+    function fitTitles() {
+      const titles = [...newsEl.querySelectorAll(".title")];
+      if (!titles.length) return;
+      const base = parseFloat(getComputedStyle(titles[0]).fontSize);
+      let size = base;
+      while (titles.some((t) => t.scrollWidth > t.clientWidth) && size > base * MIN_TITLE_SCALE) {
+        size -= 1;
+        titles.forEach((t) => (t.style.fontSize = `${size}px`));
+      }
+    }
+
+    function paginate() {
+      if (!articles.length) {
+        pages = [];
+        return;
+      }
+      newsEl.replaceChildren(makeStory(articles[0]));
+      const perScreen = Math.max(1, Math.floor(newsEl.clientHeight / newsEl.firstChild.offsetHeight));
+      // Spread stories evenly (e.g. 9 + 9 rather than 10 + 8).
+      const pageCount = Math.ceil(articles.length / perScreen);
+      const perPage = Math.ceil(articles.length / pageCount);
+      pages = [];
+      for (let i = 0; i < articles.length; i += perPage) pages.push(articles.slice(i, i + perPage));
+      pageIndex = Math.min(pageIndex, pages.length - 1);
+    }
+
+    function showPage() {
+      newsEl.replaceChildren(...pages[pageIndex].map(makeStory));
+      fitTitles();
+      document.getElementById("page-dots").replaceChildren(...(pages.length > 1 ? pages : []).map((_, i) => {
+        const dot = document.createElement("span");
+        dot.classList.toggle("active", i === pageIndex);
+        return dot;
+      }));
+    }
+
+    function render(error) {
+      paginate();
+      if (!pages.length) {
+        const status = document.createElement("div");
+        status.id = "news-status";
+        status.textContent = error || "Waiting for headlines…";
+        newsEl.replaceChildren(status);
+        document.getElementById("page-dots").replaceChildren();
+        return;
+      }
+      showPage();
+    }
+
+    function nextPage() {
+      if (pages.length < 2) return;
+      newsEl.classList.add("fading");
+      setTimeout(() => {
+        pageIndex = (pageIndex + 1) % pages.length;
+        showPage();
+        newsEl.classList.remove("fading");
+      }, FADE_MS);
+    }
+
+    async function refreshNews() {
+      try {
+        const res = await fetch("/api/news");
+        const data = await res.json();
+        if (JSON.stringify(data.articles) === JSON.stringify(articles) && articles.length) return;
+        articles = data.articles;
+        render(data.error);
+      } catch (err) {
+        // Keep showing the last headlines until the server is reachable again.
+      }
+    }
+
     tick();
     setInterval(tick, 1000);
     refreshWeather();
     setInterval(refreshWeather, WEATHER_REFRESH_MS);
+    refreshNews();
+    setInterval(refreshNews, NEWS_REFRESH_MS);
+    setInterval(nextPage, PAGE_MS);
+    window.addEventListener("resize", () => render());
   </script>
 </body>
 </html>

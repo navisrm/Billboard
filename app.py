@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
+from news_fetcher import get_news
 from stock_fetcher import get_prices, get_tickers
 from weather_fetcher import get_weather
 
@@ -21,6 +22,8 @@ MARKET_TZ = ZoneInfo("America/New_York")
 MARKET_OPEN = dt_time(9, 30)
 MARKET_CLOSE = dt_time(16, 0)
 WEATHER_INTERVAL_SECONDS = 600
+# news_fetcher only calls GNews when its cache is older than its own interval, so checking often is free.
+NEWS_CHECK_SECONDS = 60
 
 
 def is_market_open() -> bool:
@@ -36,7 +39,7 @@ FETCH_INTERVAL_SECONDS = 10
 SHOW_STOCKS = os.getenv("SHOW_STOCKS", "false").lower() == "true"
 DISPLAY_NAME = os.getenv("DISPLAY_NAME", "Naveen")
 
-state = {"prices": {}, "updated_at": None, "weather": None}
+state = {"prices": {}, "updated_at": None, "weather": None, "news": None}
 state_lock = asyncio.Lock()
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -66,9 +69,20 @@ async def weather_loop():
         await asyncio.sleep(WEATHER_INTERVAL_SECONDS)
 
 
+async def news_loop():
+    while True:
+        try:
+            news = await asyncio.to_thread(get_news)
+            async with state_lock:
+                state["news"] = news
+        except Exception as exc:
+            print(f"Failed to refresh news: {exc}")
+        await asyncio.sleep(NEWS_CHECK_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    tasks = [asyncio.create_task(weather_loop())]
+    tasks = [asyncio.create_task(weather_loop()), asyncio.create_task(news_loop())]
     if SHOW_STOCKS:
         tasks.append(asyncio.create_task(refresh_loop()))
     yield
@@ -90,6 +104,12 @@ async def index(request: Request):
 async def api_weather():
     async with state_lock:
         return JSONResponse({"weather": state["weather"]})
+
+
+@app.get("/api/news")
+async def api_news():
+    async with state_lock:
+        return JSONResponse(state["news"] or {"articles": [], "fetched_at": None, "error": None})
 
 
 @app.get("/api/prices")
