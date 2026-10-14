@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Billboard</title>
+  <style>
+    html, body {
+      height: 100%;
+    }
+    body {
+      background: #0b0f14;
+      color: #f2f2f2;
+      font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      cursor: none;
+      overflow: hidden;
+    }
+    #greeting {
+      font-size: 7vw;
+      font-weight: 300;
+      margin: 0;
+    }
+    #clock {
+      font-size: 2.2vw;
+      color: #8899a6;
+      margin-top: 1vh;
+    }
+    #weather {
+      display: flex;
+      align-items: center;
+      gap: 3vw;
+      margin-top: 8vh;
+    }
+    #weather .icon {
+      font-size: 9vw;
+    }
+    #weather .details {
+      text-align: left;
+    }
+    #weather .temp {
+      font-size: 6vw;
+      font-weight: 600;
+      line-height: 1;
+    }
+    #weather .desc {
+      font-size: 2.2vw;
+      margin-top: 1vh;
+    }
+    #weather .meta {
+      font-size: 1.6vw;
+      color: #8899a6;
+      margin-top: 0.5vh;
+    }
+  </style>
+</head>
+<body data-name="{{ name }}">
+  <h1 id="greeting"></h1>
+  <div id="clock"></div>
+  <div id="weather"><div class="meta">Loading weather…</div></div>
+
+  <script>
+    const NAME = document.body.dataset.name;
+    const WEATHER_REFRESH_MS = 60000;
+
+    function greetingFor(hour) {
+      if (hour < 12) return "Good Morning";
+      if (hour < 17) return "Good Afternoon";
+      return "Good Evening";
+    }
+
+    function tick() {
+      const now = new Date();
+      document.getElementById("greeting").textContent = `${greetingFor(now.getHours())}, ${NAME}`;
+      document.getElementById("clock").textContent =
+        now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) +
+        " · " + now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    }
+
+    async function refreshWeather() {
+      try {
+        const res = await fetch("/api/weather");
+        const { weather: w } = await res.json();
+        if (!w) return;
+        document.getElementById("weather").innerHTML = `
+          <span class="icon">${w.icon}</span>
+          <span class="details">
+            <div class="temp">${Math.round(w.temperature)}°C</div>
+            <div class="desc">${w.description}</div>
+            <div class="meta">Feels like ${Math.round(w.feels_like)}° · H ${Math.round(w.high)}° / L ${Math.round(w.low)}°</div>
+            <div class="meta">${w.location}</div>
+          </span>`;
+      } catch (err) {
+        // Keep showing the last known weather until the server is reachable again.
+      }
+    }
+
+    tick();
+    setInterval(tick, 1000);
+    refreshWeather();
+    setInterval(refreshWeather, WEATHER_REFRESH_MS);
+  </script>
+</body>
+</html>

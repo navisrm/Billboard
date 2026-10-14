@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime, time as dt_time
 from zoneinfo import ZoneInfo
 
+from pathlib import Path
+
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -30,11 +32,14 @@ def is_market_open() -> bool:
 load_dotenv()
 
 FETCH_INTERVAL_SECONDS = 10
+# Stocks are parked for now; set SHOW_STOCKS=true in .env to bring the stock board back.
+SHOW_STOCKS = os.getenv("SHOW_STOCKS", "false").lower() == "true"
+DISPLAY_NAME = os.getenv("DISPLAY_NAME", "Naveen")
 
 state = {"prices": {}, "updated_at": None, "weather": None}
 state_lock = asyncio.Lock()
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 
 async def refresh_loop():
@@ -63,11 +68,12 @@ async def weather_loop():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    price_task = asyncio.create_task(refresh_loop())
-    weather_task = asyncio.create_task(weather_loop())
+    tasks = [asyncio.create_task(weather_loop())]
+    if SHOW_STOCKS:
+        tasks.append(asyncio.create_task(refresh_loop()))
     yield
-    price_task.cancel()
-    weather_task.cancel()
+    for task in tasks:
+        task.cancel()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -75,7 +81,15 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def index(request: Request):
-    return templates.TemplateResponse(request, "index.html", {"tickers": get_tickers()})
+    if SHOW_STOCKS:
+        return templates.TemplateResponse(request, "index.html", {"tickers": get_tickers()})
+    return templates.TemplateResponse(request, "greeting.html", {"name": DISPLAY_NAME})
+
+
+@app.get("/api/weather")
+async def api_weather():
+    async with state_lock:
+        return JSONResponse({"weather": state["weather"]})
 
 
 @app.get("/api/prices")

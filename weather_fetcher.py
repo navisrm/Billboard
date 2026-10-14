@@ -50,12 +50,17 @@ def get_weather():
             "latitude": LATITUDE,
             "longitude": LONGITUDE,
             "current": "temperature_2m,apparent_temperature,weather_code",
+            "daily": "temperature_2m_max,temperature_2m_min",
+            "timezone": "auto",
+            "forecast_days": 1,
             "temperature_unit": "celsius",
         },
         timeout=10,
     )
     response.raise_for_status()
-    current = response.json()["current"]
+    data = response.json()
+    current = data["current"]
+    daily = data["daily"]
     description, icon = WEATHER_CODES.get(current["weather_code"], ("Unknown", "🌡️"))
     return {
         "location": LOCATION_NAME,
@@ -63,4 +68,6 @@ def get_weather():
         "feels_like": current["apparent_temperature"],
         "description": description,
         "icon": icon,
+        "high": daily["temperature_2m_max"][0],
+        "low": daily["temperature_2m_min"][0],
     }
