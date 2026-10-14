@@ -94,22 +94,33 @@
       flex: 1;
       min-height: 0;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
       transition: opacity 0.8s ease;
     }
     #news.fading {
       opacity: 0;
     }
     .story {
+      /* Rows share the screen height evenly, so short pages don't leave a gap at the bottom. */
+      flex: 1;
       display: flex;
-      align-items: baseline;
+      align-items: center;
       gap: 1.5vw;
       border-top: 1px solid #1c232c;
-      padding: 1.5vh 0;
+      padding: 1.4vh 0;
+    }
+    #news.measuring .story {
+      flex: none;
+    }
+    .story .body {
+      flex: 1;
+      min-width: 0;
     }
     .story .tag {
       flex: none;
-      width: 8.5vw;
-      font-size: 0.85vw;
+      width: 10vw;
+      font-size: 1vw;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -119,17 +130,15 @@
     .story .tag.health { color: #4fd1a5; }
     .story .tag.deals { color: #f5b84a; }
     .story .title {
-      flex: 1;
-      min-width: 0;
-      font-size: 1.9vw;
+      font-size: 2.4vw;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .story .meta {
-      flex: none;
-      font-size: 0.95vw;
+      font-size: 1.1vw;
       color: #6b7a87;
+      margin-top: 0.5vh;
     }
     #news-status {
       font-size: 1.3vw;
@@ -162,7 +171,7 @@
     const PAGE_MS = 15000;
     const FADE_MS = 800;
     // Long headlines shrink the screen's titles down to this fraction of normal size before being cut off.
-    const MIN_TITLE_SCALE = 0.85;
+    const MIN_TITLE_SCALE = 0.8;
 
     const newsEl = document.getElementById("news");
     let articles = [];
@@ -221,7 +230,10 @@
       const meta = document.createElement("div");
       meta.className = "meta";
       meta.textContent = `${a.source} · ${timeAgo(a.published_at)}`;
-      story.append(tag, title, meta);
+      const body = document.createElement("div");
+      body.className = "body";
+      body.append(title, meta);
+      story.append(tag, body);
       return story;
     }
 
@@ -242,8 +254,10 @@
         pages = [];
         return;
       }
+      newsEl.classList.add("measuring");
       newsEl.replaceChildren(makeStory(articles[0]));
       const perScreen = Math.max(1, Math.floor(newsEl.clientHeight / newsEl.firstChild.offsetHeight));
+      newsEl.classList.remove("measuring");
       // Spread stories evenly (e.g. 9 + 9 rather than 10 + 8).
       const pageCount = Math.ceil(articles.length / perScreen);
       const perPage = Math.ceil(articles.length / pageCount);
