@@ -22,7 +22,7 @@ MARKET_TZ = ZoneInfo("America/New_York")
 MARKET_OPEN = dt_time(9, 30)
 MARKET_CLOSE = dt_time(16, 0)
 WEATHER_INTERVAL_SECONDS = 600
-# news_fetcher only calls GNews when its cache is older than its own interval, so checking often is free.
+# news_fetcher only calls the news API when its cache is older than its own interval, so checking often is free.
 NEWS_CHECK_SECONDS = 60
 
 
@@ -109,7 +109,7 @@ async def api_weather():
 @app.get("/api/news")
 async def api_news():
     async with state_lock:
-        return JSONResponse(state["news"] or {"articles": [], "fetched_at": None, "error": None})
+        return JSONResponse(state["news"] or {"categories": [], "fetched_at": None, "error": None})
 
 
 @app.get("/api/prices")

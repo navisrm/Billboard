@@ -9,45 +9,39 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-API_KEY = os.getenv("GNEWS_API_KEY", "")
+API_KEY = os.getenv("FREENEWS_API_KEY", "")
 LANGUAGE = os.getenv("NEWS_LANG", "en")
 
-# One GNews search request per topic. `in=title` keeps matches on-topic.
-TOPICS = [
-    {
-        "key": "ca_gov",
-        "label": "Canada",
-        "country": "ca",
-        "q": '"federal government" OR "prime minister" OR "Government of Canada" OR "federal funding" OR Parliament',
-    },
-    {
-        "key": "us_gov",
-        "label": "US",
-        "country": "us",
-        "q": '"White House" OR "executive order" OR "Trump administration" OR "signs bill" OR "federal agency"',
-    },
-    {
-        "key": "health",
-        "label": "FDA / Vaccines",
-        "country": None,
-        "q": '"FDA approves" OR "FDA approval" OR "FDA clears" OR "Health Canada" OR vaccine',
-    },
-    {
-        "key": "deals",
-        "label": "Deals",
-        "country": None,
-        "q": '"to acquire" OR "agrees to buy" OR "agreed to buy" OR "merger agreement" OR "takeover bid" OR "billion deal"',
-    },
+# Each category is shown on its own screen(s). Every query is one API request;
+# a category's queries are merged (e.g. Canada + US) and the newest stories kept.
+CATEGORIES = [
+    # Without a topic the API returns everything newest-first, which is mostly sports; "world" reads like headlines.
+    {"key": "top", "label": "Top Stories", "queries": [
+        {"topic": "world", "country": "ca"},
+        {"topic": "world", "country": "us"},
+    ]},
+    {"key": "politics", "label": "Politics", "queries": [
+        {"topic": "politics", "country": "ca"},
+        {"topic": "politics", "country": "us"},
+    ]},
+    {"key": "business", "label": "Business", "queries": [
+        {"topic": "business", "country": "ca"},
+        {"topic": "business", "country": "us"},
+    ]},
+    {"key": "health", "label": "Health", "queries": [
+        {"topic": "health", "country": "ca"},
+        {"topic": "health", "country": "us"},
+    ]},
+    {"key": "technology", "label": "Technology", "queries": [{"topic": "technology", "country": "us"}]},
 ]
-PER_TOPIC = 5
+PER_CATEGORY = 6
 
-# GNews free tier: 100 requests/day, max 10 articles per request, 1 request/second.
-# 4 topics every 90 min = 64 requests/day, leaving headroom for manual testing.
-NEWS_INTERVAL_SECONDS = 90 * 60
-MAX_ARTICLES = 10
-REQUEST_SPACING_SECONDS = 1.2
+# freenewsapi.io free tier: 5,000 requests/day, 2 requests/second.
+# 9 requests every 15 min = 864/day.
+NEWS_INTERVAL_SECONDS = 15 * 60
+REQUEST_SPACING_SECONDS = 0.6
 
-NEWS_URL = "https://gnews.io/api/v4/search"
+NEWS_URL = "https://api.freenewsapi.io/v1/news"
 # Persisted so service restarts and reboots reuse the last fetch instead of spending quota.
 CACHE_FILE = Path(__file__).parent / ".news_cache.json"
 
@@ -63,29 +57,32 @@ def _save_cache(cache):
     CACHE_FILE.write_text(json.dumps(cache))
 
 
-def _fetch_topic(topic):
-    params = {
-        "q": topic["q"],
-        "in": "title",
-        "lang": LANGUAGE,
-        "max": MAX_ARTICLES,
-        "sortby": "publishedAt",
-        "apikey": API_KEY,
-    }
-    if topic["country"]:
-        params["country"] = topic["country"]
-    response = httpx.get(NEWS_URL, params=params, timeout=10)
+def _fetch(query):
+    response = httpx.get(
+        NEWS_URL,
+        params={"language": LANGUAGE, **query},
+        headers={"x-api-key": API_KEY},
+        timeout=10,
+    )
     response.raise_for_status()
     return [
         {
-            "title": article["title"],
-            "source": article["source"]["name"],
-            "published_at": article["publishedAt"],
-            "topic": topic["label"],
-            "topic_key": topic["key"],
+            "title": _clean_title(article["title"], article.get("publisher") or ""),
+            "source": article.get("publisher") or "",
+            "published_at": article["published_at"],
         }
-        for article in response.json().get("articles", [])
+        for article in response.json().get("data", [])
+        if article.get("title")
     ]
+
+
+def _clean_title(title, publisher):
+    # Some feeds append the outlet ("Headline - Sports Illustrated"); the source is already shown below.
+    if publisher and " - " in title:
+        head, _, tail = title.partition(" - ")
+        if publisher.lower() in tail.lower() or tail.lower() in publisher.lower():
+            return head
+    return title
 
 
 STOPWORDS = {
@@ -108,50 +105,59 @@ def _is_duplicate(title, seen):
     return False
 
 
-def _select_articles(topics):
-    seen, selected = [], []
-    for topic in TOPICS:
-        picked = 0
-        for article in topics.get(topic["key"], []):
-            if picked == PER_TOPIC:
+def _select(results):
+    # Categories are filled in order, so a story already under Top Stories isn't repeated later.
+    seen, categories = [], []
+    for category in CATEGORIES:
+        pool = [
+            article
+            for i in range(len(category["queries"]))
+            for article in results.get(f"{category['key']}:{i}", [])
+        ]
+        picked = []
+        for article in sorted(pool, key=lambda a: a["published_at"], reverse=True):
+            if len(picked) == PER_CATEGORY:
                 break
             if _is_duplicate(article["title"], seen):
                 continue
             seen.append(_words(article["title"]))
-            selected.append(article)
-            picked += 1
-    return sorted(selected, key=lambda a: a["published_at"], reverse=True)
+            picked.append(article)
+        if picked:
+            categories.append({"key": category["key"], "label": category["label"], "articles": picked})
+    return categories
 
 
 def get_news():
     if not API_KEY:
-        return {"articles": [], "fetched_at": None, "error": "GNEWS_API_KEY is not set"}
+        return {"categories": [], "fetched_at": None, "error": "FREENEWS_API_KEY is not set"}
 
     cache = _load_cache()
-    stale = "topics" not in cache or time.time() - cache.get("fetched_at", 0) >= NEWS_INTERVAL_SECONDS
+    stale = "results" not in cache or time.time() - cache.get("fetched_at", 0) >= NEWS_INTERVAL_SECONDS
     if stale:
         # Record the attempt before calling, so failing requests are retried
-        # on the normal schedule rather than every loop and can't burn the daily quota.
+        # on the normal schedule rather than every loop.
         cache["fetched_at"] = time.time()
-        cache.setdefault("topics", {})
+        cache.setdefault("results", {})
         _save_cache(cache)
         errors = []
-        for i, topic in enumerate(TOPICS):
-            if i:
-                time.sleep(REQUEST_SPACING_SECONDS)
-            try:
-                cache["topics"][topic["key"]] = _fetch_topic(topic)
-            except httpx.HTTPStatusError as exc:
-                # Not str(exc): it includes the request URL, which carries the API key.
-                errors.append(f"{topic['label']}: GNews returned {exc.response.status_code}")
-            except httpx.HTTPError as exc:
-                errors.append(f"{topic['label']}: {type(exc).__name__}")
-        # On failure a topic keeps its previous articles.
-        cache["error"] = f"News unavailable ({'; '.join(errors)})" if errors else None
+        first = True
+        for category in CATEGORIES:
+            for i, query in enumerate(category["queries"]):
+                if not first:
+                    time.sleep(REQUEST_SPACING_SECONDS)
+                first = False
+                try:
+                    cache["results"][f"{category['key']}:{i}"] = _fetch(query)
+                except httpx.HTTPStatusError as exc:
+                    errors.append(f"{category['label']}: HTTP {exc.response.status_code}")
+                except httpx.HTTPError as exc:
+                    errors.append(f"{category['label']}: {type(exc).__name__}")
+        # On failure a query keeps its previous articles.
+        cache["error"] = f"Some news unavailable ({'; '.join(errors)})" if errors else None
         _save_cache(cache)
 
     return {
-        "articles": _select_articles(cache["topics"]),
+        "categories": _select(cache["results"]),
         "fetched_at": cache["fetched_at"],
         "error": cache.get("error"),
     }

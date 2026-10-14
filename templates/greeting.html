@@ -4,12 +4,18 @@
   <meta charset="UTF-8">
   <title>Billboard</title>
   <style>
+    :root {
+      --red: #c8102e;
+      --ink: #16181b;
+      --muted: #5c636b;
+      --rule: #ececec;
+    }
     html, body {
       height: 100%;
     }
     body {
-      background: #000;
-      color: #f2f2f2;
+      background: #fff;
+      color: var(--ink);
       font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
       margin: 0;
       display: flex;
@@ -17,12 +23,34 @@
       cursor: none;
       overflow: hidden;
     }
+    /* Red bands down both edges, like the flag. */
+    body::before, body::after {
+      content: "";
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      width: 1.4vw;
+      background: var(--red);
+      z-index: 2;
+    }
+    body::before { left: 0; }
+    body::after { right: 0; }
     header {
-      background: #0b0f14;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 2.5vh 4vw;
+      border-bottom: 0.5vh solid var(--red);
+    }
+    .greeting-line {
+      display: flex;
+      align-items: center;
+      gap: 1.2vw;
+    }
+    .leaf-icon {
+      width: 3.6vw;
+      height: 3.6vw;
+      flex: none;
     }
     #greeting {
       font-size: 3.8vw;
@@ -31,8 +59,9 @@
     }
     #clock {
       font-size: 1.5vw;
-      color: #8899a6;
+      color: var(--muted);
       margin-top: 0.6vh;
+      margin-left: 4.8vw;
     }
     #weather {
       display: flex;
@@ -46,6 +75,7 @@
       font-size: 3.2vw;
       font-weight: 600;
       line-height: 1;
+      color: var(--red);
     }
     #weather .desc {
       font-size: 1.3vw;
@@ -53,16 +83,32 @@
     }
     #weather .meta {
       font-size: 1vw;
-      color: #8899a6;
+      color: var(--muted);
       margin-top: 0.3vh;
     }
     main {
       flex: 1;
-      background: #000;
+      position: relative;
+      overflow: hidden;
       padding: 2.5vh 4vw 2vh;
       display: flex;
       flex-direction: column;
       min-height: 0;
+    }
+    /* Faint maple leaf behind the headlines; kept very light so dark text stays crisp. */
+    #maple {
+      position: absolute;
+      right: 3vw;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 62vh;
+      height: 62vh;
+      opacity: 0.06;
+      pointer-events: none;
+    }
+    .section-head, #news {
+      position: relative;
+      z-index: 1;
     }
     .section-head {
       display: flex;
@@ -71,10 +117,21 @@
       margin-bottom: 1.2vh;
     }
     .section-title {
-      font-size: 1vw;
+      font-size: 1.3vw;
+      font-weight: 700;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: #8899a6;
+      color: var(--red);
+      transition: opacity 0.8s ease;
+    }
+    /* Darker shades so each category heading reads clearly on white. */
+    .section-title.top { color: var(--red); }
+    .section-title.politics { color: #1d4ed8; }
+    .section-title.business { color: #b45309; }
+    .section-title.health { color: #047857; }
+    .section-title.technology { color: #6d28d9; }
+    .section-title.fading {
+      opacity: 0;
     }
     #page-dots {
       display: flex;
@@ -84,11 +141,11 @@
       width: 0.6vw;
       height: 0.6vw;
       border-radius: 50%;
-      background: #2a333d;
+      background: #d9d9d9;
       transition: background 0.8s ease;
     }
     #page-dots span.active {
-      background: #8899a6;
+      background: var(--red);
     }
     #news {
       flex: 1;
@@ -102,12 +159,13 @@
       opacity: 0;
     }
     .story {
-      /* Rows share the screen height evenly, so short pages don't leave a gap at the bottom. */
-      flex: 1;
+      /* Row height is set by paginate() so a full screen of rows fills the space exactly. */
+      flex: 0 0 var(--row-height, auto);
+      box-sizing: border-box;
       display: flex;
       align-items: center;
       gap: 1.5vw;
-      border-top: 1px solid #1c232c;
+      border-top: 1px solid var(--rule);
       padding: 1.4vh 0;
     }
     #news.measuring .story {
@@ -117,47 +175,45 @@
       flex: 1;
       min-width: 0;
     }
-    .story .tag {
-      flex: none;
-      width: 10vw;
-      font-size: 1vw;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-    .story .tag.ca_gov { color: #ff6b6b; }
-    .story .tag.us_gov { color: #6ea8ff; }
-    .story .tag.health { color: #4fd1a5; }
-    .story .tag.deals { color: #f5b84a; }
     .story .title {
       font-size: 2.4vw;
+      font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .story .meta {
       font-size: 1.1vw;
-      color: #6b7a87;
+      color: var(--muted);
       margin-top: 0.5vh;
     }
     #news-status {
       font-size: 1.3vw;
-      color: #6b7a87;
+      color: var(--muted);
     }
   </style>
 </head>
 <body data-name="{{ name }}">
+  <svg style="display: none" aria-hidden="true">
+    <symbol id="leaf" viewBox="-2100 -2100 4200 4200">
+      <path d="m-90 2030 45-863a95 95 0 0 0-111-98l-859 151 116-320a65 65 0 0 0-20-73l-941-762 212-99a65 65 0 0 0 34-79l-186-572 542 115a65 65 0 0 0 73-38l105-247 423 454a65 65 0 0 0 111-57l-204-1052 327 189a65 65 0 0 0 91-27l332-652 332 652a65 65 0 0 0 91 27l327-189-204 1052a65 65 0 0 0 111 57l423-454 105 247a65 65 0 0 0 73 38l542-115-186 572a65 65 0 0 0 34 79l212 99-941 762a65 65 0 0 0-20 73l116 320-859-151a95 95 0 0 0-111 98l45 863z"/>
+    </symbol>
+  </svg>
   <header>
     <div>
-      <h1 id="greeting"></h1>
+      <div class="greeting-line">
+        <svg class="leaf-icon" fill="#c8102e"><use href="#leaf"/></svg>
+        <h1 id="greeting"></h1>
+      </div>
       <div id="clock"></div>
     </div>
     <div id="weather"><div class="meta">Loading weather…</div></div>
   </header>
 
   <main>
+    <svg id="maple" fill="#c8102e" aria-hidden="true"><use href="#leaf"/></svg>
     <div class="section-head">
-      <div class="section-title">Top Stories</div>
+      <div class="section-title" id="section-title">News</div>
       <div id="page-dots"></div>
     </div>
     <div id="news"><div id="news-status">Loading news…</div></div>
@@ -166,7 +222,7 @@
   <script>
     const NAME = document.body.dataset.name;
     const WEATHER_REFRESH_MS = 60000;
-    // The server only hits GNews every 90 min; this just picks up its cached result.
+    // The server only calls the news API every 15 min; this just picks up its cached result.
     const NEWS_REFRESH_MS = 5 * 60000;
     const PAGE_MS = 15000;
     const FADE_MS = 800;
@@ -174,7 +230,9 @@
     const MIN_TITLE_SCALE = 0.8;
 
     const newsEl = document.getElementById("news");
-    let articles = [];
+    const titleEl = document.getElementById("section-title");
+    let categories = [];
+    // Each page is one screen: { category, articles }.
     let pages = [];
     let pageIndex = 0;
 
@@ -221,9 +279,6 @@
     function makeStory(a) {
       const story = document.createElement("div");
       story.className = "story";
-      const tag = document.createElement("div");
-      tag.className = `tag ${a.topic_key}`;
-      tag.textContent = a.topic;
       const title = document.createElement("div");
       title.className = "title";
       title.textContent = a.title;
@@ -233,7 +288,7 @@
       const body = document.createElement("div");
       body.className = "body";
       body.append(title, meta);
-      story.append(tag, body);
+      story.append(body);
       return story;
     }
 
@@ -250,24 +305,30 @@
     }
 
     function paginate() {
-      if (!articles.length) {
-        pages = [];
-        return;
-      }
+      pages = [];
+      if (!categories.length) return;
       newsEl.classList.add("measuring");
-      newsEl.replaceChildren(makeStory(articles[0]));
+      newsEl.replaceChildren(makeStory(categories[0].articles[0]));
       const perScreen = Math.max(1, Math.floor(newsEl.clientHeight / newsEl.firstChild.offsetHeight));
       newsEl.classList.remove("measuring");
-      // Spread stories evenly (e.g. 9 + 9 rather than 10 + 8).
-      const pageCount = Math.ceil(articles.length / perScreen);
-      const perPage = Math.ceil(articles.length / pageCount);
-      pages = [];
-      for (let i = 0; i < articles.length; i += perPage) pages.push(articles.slice(i, i + perPage));
+      newsEl.style.setProperty("--row-height", `${newsEl.clientHeight / perScreen}px`);
+      for (const category of categories) {
+        const { articles } = category;
+        // A category that doesn't fit on one screen is spread evenly (e.g. 5 + 5 rather than 7 + 3).
+        const pageCount = Math.ceil(articles.length / perScreen);
+        const perPage = Math.ceil(articles.length / pageCount);
+        for (let i = 0; i < articles.length; i += perPage) {
+          pages.push({ category, articles: articles.slice(i, i + perPage) });
+        }
+      }
       pageIndex = Math.min(pageIndex, pages.length - 1);
     }
 
     function showPage() {
-      newsEl.replaceChildren(...pages[pageIndex].map(makeStory));
+      const { category, articles } = pages[pageIndex];
+      titleEl.textContent = category.label;
+      titleEl.className = `section-title ${category.key}`;
+      newsEl.replaceChildren(...articles.map(makeStory));
       fitTitles();
       document.getElementById("page-dots").replaceChildren(...(pages.length > 1 ? pages : []).map((_, i) => {
         const dot = document.createElement("span");
@@ -283,6 +344,8 @@
         status.id = "news-status";
         status.textContent = error || "Waiting for headlines…";
         newsEl.replaceChildren(status);
+        titleEl.textContent = "News";
+        titleEl.className = "section-title";
         document.getElementById("page-dots").replaceChildren();
         return;
       }
@@ -292,6 +355,7 @@
     function nextPage() {
       if (pages.length < 2) return;
       newsEl.classList.add("fading");
+      titleEl.classList.add("fading");
       setTimeout(() => {
         pageIndex = (pageIndex + 1) % pages.length;
         showPage();
@@ -303,8 +367,8 @@
       try {
         const res = await fetch("/api/news");
         const data = await res.json();
-        if (JSON.stringify(data.articles) === JSON.stringify(articles) && articles.length) return;
-        articles = data.articles;
+        if (JSON.stringify(data.categories) === JSON.stringify(categories) && categories.length) return;
+        categories = data.categories;
         render(data.error);
       } catch (err) {
         // Keep showing the last headlines until the server is reachable again.
@@ -318,7 +382,13 @@
     refreshNews();
     setInterval(refreshNews, NEWS_REFRESH_MS);
     setInterval(nextPage, PAGE_MS);
-    window.addEventListener("resize", () => render());
+    // Re-split whenever the news area changes size (window resize, or the header growing once weather loads).
+    let lastHeight = 0;
+    new ResizeObserver(() => {
+      if (newsEl.clientHeight === lastHeight || !categories.length) return;
+      lastHeight = newsEl.clientHeight;
+      render();
+    }).observe(newsEl);
   </script>
 </body>
 </html>
