@@ -15,6 +15,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
 from daily_plan import get_plan
+from market_fetcher import get_market
 from news_fetcher import get_news
 from stock_fetcher import get_prices, get_tickers
 from weather_fetcher import get_weather
@@ -25,6 +26,8 @@ MARKET_CLOSE = dt_time(16, 0)
 WEATHER_INTERVAL_SECONDS = 600
 # news_fetcher only calls the news API when its cache is older than its own interval, so checking often is free.
 NEWS_CHECK_SECONDS = 60
+MARKET_OPEN_INTERVAL_SECONDS = 5 * 60
+MARKET_CLOSED_INTERVAL_SECONDS = 30 * 60
 
 
 def is_market_open() -> bool:
@@ -40,7 +43,7 @@ FETCH_INTERVAL_SECONDS = 10
 SHOW_STOCKS = os.getenv("SHOW_STOCKS", "false").lower() == "true"
 DISPLAY_NAME = os.getenv("DISPLAY_NAME", "Naveen")
 
-state = {"prices": {}, "updated_at": None, "weather": None, "news": None}
+state = {"prices": {}, "updated_at": None, "weather": None, "news": None, "market": None}
 state_lock = asyncio.Lock()
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -81,9 +84,24 @@ async def news_loop():
         await asyncio.sleep(NEWS_CHECK_SECONDS)
 
 
+async def market_loop():
+    while True:
+        try:
+            market = await asyncio.to_thread(get_market)
+            async with state_lock:
+                state["market"] = market
+        except Exception as exc:
+            print(f"Failed to refresh market: {exc}")
+        await asyncio.sleep(MARKET_OPEN_INTERVAL_SECONDS if is_market_open() else MARKET_CLOSED_INTERVAL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    tasks = [asyncio.create_task(weather_loop()), asyncio.create_task(news_loop())]
+    tasks = [
+        asyncio.create_task(weather_loop()),
+        asyncio.create_task(news_loop()),
+        asyncio.create_task(market_loop()),
+    ]
     if SHOW_STOCKS:
         tasks.append(asyncio.create_task(refresh_loop()))
     yield
@@ -111,6 +129,13 @@ async def api_weather():
 async def api_news():
     async with state_lock:
         return JSONResponse(state["news"] or {"categories": [], "fetched_at": None, "error": None})
+
+
+@app.get("/api/market")
+async def api_market():
+    async with state_lock:
+        market = state["market"]
+    return JSONResponse({"market": market and {**market, "market_open": is_market_open()}})
 
 
 @app.get("/api/plan")

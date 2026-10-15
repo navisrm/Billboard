@@ -528,6 +528,191 @@
       color: var(--muted);
       font-style: italic;
     }
+    /* ---- Market screens: dark trading-terminal backdrop ---- */
+    #market-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(127, 209, 255, 0.05) 1px, transparent 1px) 0 0 / 100% 6vh,
+        linear-gradient(90deg, rgba(127, 209, 255, 0.05) 1px, transparent 1px) 0 0 / 6vh 100%,
+        radial-gradient(ellipse at 75% 20%, #16305a 0%, #0b1730 55%, #070e1f 100%);
+    }
+    #market-bg svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .chart-line {
+      fill: none;
+      stroke-width: 3;
+      stroke-linejoin: round;
+      stroke-dasharray: 2600;
+      animation: chart-trace 24s linear infinite;
+    }
+    @keyframes chart-trace {
+      from { stroke-dashoffset: 2600; }
+      to { stroke-dashoffset: -2600; }
+    }
+    main.market-mode #market-bg { opacity: 1; }
+    main.market-mode #maple { opacity: 0; }
+    main.market-mode .section-title { color: #7fd1ff; }
+    main.market-mode #page-dots span { background: rgba(255, 255, 255, 0.25); }
+    main.market-mode #page-dots span.active { background: #7fd1ff; }
+    .up { color: #2ee59d; }
+    .down { color: #ff6b7d; }
+    .market {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2vh;
+      color: #eef3fb;
+      padding-top: 0.5vh;
+    }
+    .index-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr) auto;
+      gap: 1.2vw;
+      align-items: stretch;
+    }
+    .index-card {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.8vw;
+      padding: 1.2vh 1.2vw;
+    }
+    .index-card .name {
+      font-size: 1.05vw;
+      color: #a9b8cf;
+      letter-spacing: 0.05em;
+    }
+    .index-card .value {
+      font-size: 2vw;
+      font-weight: 700;
+      margin-top: 0.3vh;
+    }
+    .index-card .chg {
+      font-size: 1.25vw;
+      font-weight: 600;
+    }
+    .market-status {
+      align-self: center;
+      font-size: 1vw;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 0.8vh 1vw;
+      border-radius: 2vh;
+      border: 1px solid currentColor;
+      white-space: nowrap;
+    }
+    .heatmap {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 1vw;
+    }
+    .tile {
+      border-radius: 0.8vw;
+      padding: 1.4vh 1.2vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    }
+    .tile .name {
+      font-size: 1.4vw;
+      font-weight: 700;
+    }
+    .tile .etf {
+      font-size: 0.95vw;
+      opacity: 0.85;
+    }
+    .tile .chg {
+      font-size: 2.6vw;
+      font-weight: 700;
+    }
+    .tile.legend {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      color: #a9b8cf;
+      font-size: 1vw;
+      text-shadow: none;
+      justify-content: center;
+      gap: 1vh;
+    }
+    .sector-cols {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.2vw;
+    }
+    .sector-col {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 0.6vh solid var(--accent);
+      border-radius: 0.8vw;
+      padding: 1.6vh 1.2vw;
+      display: flex;
+      flex-direction: column;
+    }
+    .sector-col .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.6vw;
+      padding-bottom: 1.2vh;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .sector-col .head .name {
+      font-size: 1.45vw;
+      font-weight: 700;
+    }
+    .sector-col .head .chg {
+      font-size: 1.45vw;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .sector-col .etf {
+      font-size: 0.9vw;
+      color: #a9b8cf;
+      margin-top: 0.4vh;
+    }
+    .stock {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .stock:last-child {
+      border-bottom: 0;
+    }
+    .stock .sym {
+      font-size: 1.45vw;
+      font-weight: 700;
+    }
+    .stock .co {
+      font-size: 0.95vw;
+      color: #a9b8cf;
+    }
+    .stock .right {
+      text-align: right;
+    }
+    .stock .px {
+      font-size: 1.25vw;
+    }
+    .stock .chg {
+      font-size: 1.2vw;
+      font-weight: 700;
+    }
     #news-status {
       font-size: 1.3vw;
       color: var(--muted);
@@ -553,6 +738,19 @@
   </header>
 
   <main>
+    <div id="market-bg" aria-hidden="true">
+      <svg viewBox="0 0 1600 700" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="chart-fade" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#2ee59d" stop-opacity="0"/>
+            <stop offset="0.5" stop-color="#2ee59d" stop-opacity="0.35"/>
+            <stop offset="1" stop-color="#7fd1ff" stop-opacity="0.15"/>
+          </linearGradient>
+        </defs>
+        <path id="chart-a" class="chart-line" stroke="url(#chart-fade)"/>
+        <path id="chart-b" class="chart-line" stroke="rgba(127, 209, 255, 0.12)" style="animation-delay: -12s"/>
+      </svg>
+    </div>
     <div id="calm" aria-hidden="true">
       <svg viewBox="0 0 1600 700" preserveAspectRatio="xMidYMid slice">
         <defs>
@@ -620,6 +818,10 @@
     // The daily plan has more to read, so it stays up longer.
     const PLAN_PAGE_MS = 30000;
     const PLAN_REFRESH_MS = 30 * 60000;
+    // The server refreshes prices every 5 min while the market is open.
+    const MARKET_REFRESH_MS = 2 * 60000;
+    const MARKET_OVERVIEW_MS = 20000;
+    const SECTORS_PER_SCREEN = 4;
     const FADE_MS = 800;
     // Long headlines shrink the screen's titles down to this fraction of normal size before being cut off.
     const MIN_TITLE_SCALE = 0.8;
@@ -628,6 +830,7 @@
     const titleEl = document.getElementById("section-title");
     let categories = [];
     let plan = null;
+    let market = null;
     // Each page is one screen: { category, articles }.
     let pages = [];
     let pageIndex = 0;
@@ -851,6 +1054,88 @@
       return wrap;
     }
 
+    function fmtPrice(value) {
+      return value == null ? "–" : value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fmtChange(pct) {
+      if (pct == null) return "–";
+      return `${pct >= 0 ? "▲" : "▼"} ${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`;
+    }
+
+    function trend(pct) {
+      return pct == null ? "" : pct >= 0 ? "up" : "down";
+    }
+
+    // Heatmap colour: slate when flat, deepening to green/red as the move approaches ±3%.
+    function heatColor(pct) {
+      const base = [42, 52, 70];
+      const full = pct >= 0 ? [13, 133, 88] : [178, 34, 52];
+      const t = Math.min(Math.abs(pct || 0) / 3, 1);
+      const mix = base.map((b, i) => Math.round(b + (full[i] - b) * t));
+      return `rgb(${mix.join(",")})`;
+    }
+
+    function makeIndexRow(m) {
+      const row = el("div", "index-row");
+      for (const idx of m.indexes) {
+        const card = el("div", "index-card");
+        card.append(
+          el("div", "name", idx.name),
+          el("div", "value", fmtPrice(idx.price)),
+          el("div", `chg ${trend(idx.change_pct)}`, fmtChange(idx.change_pct)),
+        );
+        row.append(card);
+      }
+      row.append(el("div", `market-status ${m.market_open ? "up" : "down"}`, m.market_open ? "● MARKET OPEN" : "● MARKET CLOSED"));
+      return row;
+    }
+
+    function makeMarketOverview(m) {
+      const heatmap = el("div", "heatmap");
+      for (const sector of m.sectors) {
+        const tile = el("div", "tile");
+        tile.style.background = heatColor(sector.change_pct);
+        const top = el("div");
+        top.append(el("div", "name", sector.name), el("div", "etf", sector.symbol));
+        tile.append(top, el("div", "chg", fmtChange(sector.change_pct)));
+        heatmap.append(tile);
+      }
+      const legend = el("div", "tile legend");
+      const updated = new Date(m.updated_at * 1000).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+      legend.append(el("div", "", "Change vs previous close"), el("div", "", `Updated ${updated}`));
+      heatmap.append(legend);
+      const wrap = el("div", "market");
+      wrap.append(makeIndexRow(m), heatmap);
+      return wrap;
+    }
+
+    function makeSectorColumns(sectors) {
+      const cols = el("div", "sector-cols");
+      for (const sector of sectors) {
+        const col = el("div", "sector-col");
+        col.style.setProperty("--accent", sector.change_pct >= 0 ? "#2ee59d" : "#ff6b7d");
+        const head = el("div", "head");
+        const left = el("div");
+        left.append(el("div", "name", sector.name), el("div", "etf", `${sector.symbol} · ${fmtPrice(sector.price)}`));
+        head.append(left, el("div", `chg ${trend(sector.change_pct)}`, fmtChange(sector.change_pct)));
+        col.append(head);
+        for (const stock of sector.stocks) {
+          const row = el("div", "stock");
+          const info = el("div");
+          info.append(el("div", "sym", stock.symbol), el("div", "co", stock.name));
+          const right = el("div", "right");
+          right.append(el("div", "px", fmtPrice(stock.price)), el("div", `chg ${trend(stock.change_pct)}`, fmtChange(stock.change_pct)));
+          row.append(info, right);
+          col.append(row);
+        }
+        cols.append(col);
+      }
+      const wrap = el("div", "market");
+      wrap.append(cols);
+      return wrap;
+    }
+
     function paginate() {
       pages = [];
       if (plan) pages.push({ plan });
@@ -870,13 +1155,27 @@
           }
         }
       }
+      if (market) {
+        pages.push({ marketOverview: market });
+        for (let i = 0; i < market.sectors.length; i += SECTORS_PER_SCREEN) {
+          pages.push({ marketSectors: market.sectors.slice(i, i + SECTORS_PER_SCREEN) });
+        }
+      }
       pageIndex = Math.max(0, Math.min(pageIndex, pages.length - 1));
     }
 
     function showPage() {
       const page = pages[pageIndex];
-      document.querySelector("main").classList.toggle("plan-mode", !!page.plan);
-      if (page.plan) {
+      applyBackdrop(page);
+      if (page.marketOverview) {
+        titleEl.textContent = "Markets";
+        titleEl.className = "section-title";
+        newsEl.replaceChildren(makeMarketOverview(page.marketOverview));
+      } else if (page.marketSectors) {
+        titleEl.textContent = "Sector Leaders";
+        titleEl.className = "section-title";
+        newsEl.replaceChildren(makeSectorColumns(page.marketSectors));
+      } else if (page.plan) {
         titleEl.textContent = "Daily Plan";
         titleEl.className = "section-title plan";
         newsEl.replaceChildren(makePlan(page.plan));
@@ -914,10 +1213,21 @@
     function scheduleNext() {
       clearTimeout(pageTimer);
       if (pages.length < 2) return;
-      pageTimer = setTimeout(nextPage, pages[pageIndex].plan ? PLAN_PAGE_MS : PAGE_MS);
+      const page = pages[pageIndex];
+      const duration = page.plan ? PLAN_PAGE_MS : page.marketOverview ? MARKET_OVERVIEW_MS : PAGE_MS;
+      pageTimer = setTimeout(nextPage, duration);
+    }
+
+    // Switches the area's backdrop (plain, scenic plan, or market) for the given page.
+    function applyBackdrop(page) {
+      const main = document.querySelector("main");
+      main.classList.toggle("plan-mode", !!page.plan);
+      main.classList.toggle("market-mode", !!(page.marketOverview || page.marketSectors));
     }
 
     function nextPage() {
+      // Start the backdrop change while the old screen fades out, so new text never lands on the wrong background.
+      applyBackdrop(pages[(pageIndex + 1) % pages.length]);
       newsEl.classList.add("fading");
       titleEl.classList.add("fading");
       setTimeout(() => {
@@ -925,6 +1235,18 @@
         showPage();
         newsEl.classList.remove("fading");
       }, FADE_MS);
+    }
+
+    async function refreshMarket() {
+      try {
+        const res = await fetch("/api/market");
+        const data = await res.json();
+        if (!data.market || JSON.stringify(data.market) === JSON.stringify(market)) return;
+        market = data.market;
+        render();
+      } catch (err) {
+        // Keep showing the last prices until the server is reachable again.
+      }
     }
 
     async function refreshPlan() {
@@ -951,6 +1273,19 @@
       }
     }
 
+    // Random-walk price lines that trace across the market screens' backdrop.
+    (function drawCharts() {
+      for (const [id, start] of [["chart-a", 520], ["chart-b", 380]]) {
+        let y = start;
+        let d = `M0 ${y}`;
+        for (let x = 40; x <= 1600; x += 40) {
+          y = Math.max(80, Math.min(640, y + (Math.random() - 0.55) * 70));
+          d += ` L${x} ${y.toFixed(0)}`;
+        }
+        document.getElementById(id).setAttribute("d", d);
+      }
+    })();
+
     // Pine treeline along the lake shore for the plan screen's scenery.
     (function plantTrees() {
       const trees = document.getElementById("scene-trees");
@@ -972,6 +1307,8 @@
     setInterval(refreshNews, NEWS_REFRESH_MS);
     refreshPlan();
     setInterval(refreshPlan, PLAN_REFRESH_MS);
+    refreshMarket();
+    setInterval(refreshMarket, MARKET_REFRESH_MS);
     // Re-split whenever the news area changes size (window resize, or the header growing once weather loads).
     let lastHeight = 0;
     new ResizeObserver(() => {
