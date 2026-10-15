@@ -4,3 +4,7 @@ __pycache__/
 .env
 .DS_Store
 .news_cache.json
+
+# Personal notes; repo is public
+TODO.md
+daily_plan.md

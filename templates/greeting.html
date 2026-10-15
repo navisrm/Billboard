@@ -328,6 +328,130 @@
       color: var(--muted);
       margin-top: 0.5vh;
     }
+    /* ---- Daily plan screen ---- */
+    .section-title.plan { color: var(--red); }
+    .plan {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1.6vh;
+      padding-top: 1vh;
+    }
+    .plan-grid {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: 1fr 1fr;
+      gap: 1.4vw;
+    }
+    .step {
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-top: 0.5vh solid var(--red);
+      border-radius: 0.8vw;
+      padding: 1.6vh 1.3vw;
+      box-shadow: 0 0.3vh 1.2vh rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+    }
+    .step-head {
+      display: flex;
+      align-items: center;
+      gap: 0.8vw;
+      font-size: 1.45vw;
+      font-weight: 700;
+      margin-bottom: 1vh;
+    }
+    .step-num {
+      flex: none;
+      width: 2.3vw;
+      height: 2.3vw;
+      border-radius: 50%;
+      background: var(--red);
+      color: #fff;
+      font-size: 1.15vw;
+      display: grid;
+      place-items: center;
+    }
+    .step ul {
+      margin: 0;
+      padding-left: 1.3vw;
+      font-size: 1.2vw;
+      line-height: 1.5;
+    }
+    .step strong {
+      color: var(--red);
+    }
+    .plan-strip {
+      display: flex;
+      align-items: center;
+      gap: 2vw;
+    }
+    /* Breathing guide: grows for 4 s (inhale), shrinks for 6 s (exhale). */
+    .pacer {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 1vw;
+    }
+    .pacer-ball {
+      width: 8vh;
+      height: 8vh;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #f6b5bf, var(--red));
+      animation: breathe 10s ease-in-out infinite;
+    }
+    @keyframes breathe {
+      0% { transform: scale(0.5); }
+      40% { transform: scale(1); }
+      100% { transform: scale(0.5); }
+    }
+    .pacer-label {
+      display: grid;
+      font-size: 1.3vw;
+      font-weight: 700;
+      color: var(--red);
+      width: 11vw;
+    }
+    .pacer-label span {
+      grid-area: 1 / 1;
+    }
+    .pacer-in { animation: show-inhale 10s step-end infinite; }
+    .pacer-out { animation: show-exhale 10s step-end infinite; }
+    @keyframes show-inhale {
+      0% { opacity: 1; }
+      40% { opacity: 0; }
+    }
+    @keyframes show-exhale {
+      0% { opacity: 0; }
+      40% { opacity: 1; }
+    }
+    .checklist {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1vw;
+    }
+    .check {
+      border-left: 0.3vw solid var(--red);
+      padding: 0.6vh 0.8vw;
+      background: #fbf1f2;
+      border-radius: 0 0.5vw 0.5vw 0;
+    }
+    .check b {
+      display: block;
+      font-size: 1.1vw;
+    }
+    .check span {
+      font-size: 1vw;
+      color: var(--muted);
+    }
+    .plan-note {
+      font-size: 1.1vw;
+      color: var(--muted);
+      font-style: italic;
+    }
     #news-status {
       font-size: 1.3vw;
       color: var(--muted);
@@ -367,6 +491,9 @@
     // The server only calls the news API every 15 min; this just picks up its cached result.
     const NEWS_REFRESH_MS = 5 * 60000;
     const PAGE_MS = 15000;
+    // The daily plan has more to read, so it stays up longer.
+    const PLAN_PAGE_MS = 30000;
+    const PLAN_REFRESH_MS = 30 * 60000;
     const FADE_MS = 800;
     // Long headlines shrink the screen's titles down to this fraction of normal size before being cut off.
     const MIN_TITLE_SCALE = 0.8;
@@ -374,6 +501,7 @@
     const newsEl = document.getElementById("news");
     const titleEl = document.getElementById("section-title");
     let categories = [];
+    let plan = null;
     // Each page is one screen: { category, articles }.
     let pages = [];
     let pageIndex = 0;
@@ -538,37 +666,103 @@
       }
     }
 
+    // Renders "**bold**" segments from the plan file as <strong>.
+    function richText(el, text) {
+      text.split(/\*\*(.+?)\*\*/).forEach((part, i) => {
+        if (!part) return;
+        if (i % 2) {
+          const strong = document.createElement("strong");
+          strong.textContent = part;
+          el.append(strong);
+        } else {
+          el.append(part);
+        }
+      });
+    }
+
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function makePlan(p) {
+      const grid = el("div", "plan-grid");
+      p.steps.forEach((step, i) => {
+        const card = el("div", "step");
+        const head = el("div", "step-head");
+        head.append(el("span", "step-num", String(i + 1)), el("span", "", step.title));
+        const list = el("ul");
+        for (const bullet of step.bullets) {
+          const li = el("li");
+          richText(li, bullet);
+          list.append(li);
+        }
+        card.append(head, list);
+        grid.append(card);
+      });
+
+      const pacer = el("div", "pacer");
+      const label = el("div", "pacer-label");
+      label.append(el("span", "pacer-in", "Inhale · 4s"), el("span", "pacer-out", "Exhale · 6s"));
+      pacer.append(el("div", "pacer-ball"), label);
+
+      const checklist = el("div", "checklist");
+      for (const [activity, duration] of p.checklist) {
+        const item = el("div", "check");
+        item.append(el("b", "", activity), el("span", "", duration));
+        checklist.append(item);
+      }
+
+      const strip = el("div", "plan-strip");
+      strip.append(pacer, checklist);
+      const wrap = el("div", "plan");
+      wrap.append(grid, strip);
+      if (p.important) wrap.append(el("div", "plan-note", p.important));
+      return wrap;
+    }
+
     function paginate() {
       pages = [];
-      if (!categories.length) return;
-      newsEl.classList.add("measuring");
-      newsEl.replaceChildren(makeStory(categories[0].articles[0]));
-      const perScreen = Math.max(1, Math.floor(newsEl.clientHeight / newsEl.firstChild.offsetHeight));
-      newsEl.classList.remove("measuring");
-      newsEl.style.setProperty("--row-height", `${newsEl.clientHeight / perScreen}px`);
-      for (const category of categories) {
-        const { articles } = category;
-        // A category that doesn't fit on one screen is spread evenly (e.g. 5 + 5 rather than 7 + 3).
-        const pageCount = Math.ceil(articles.length / perScreen);
-        const perPage = Math.ceil(articles.length / pageCount);
-        for (let i = 0; i < articles.length; i += perPage) {
-          pages.push({ category, articles: articles.slice(i, i + perPage) });
+      if (plan) pages.push({ plan });
+      if (categories.length) {
+        newsEl.classList.add("measuring");
+        newsEl.replaceChildren(makeStory(categories[0].articles[0]));
+        const perScreen = Math.max(1, Math.floor(newsEl.clientHeight / newsEl.firstChild.offsetHeight));
+        newsEl.classList.remove("measuring");
+        newsEl.style.setProperty("--row-height", `${newsEl.clientHeight / perScreen}px`);
+        for (const category of categories) {
+          const { articles } = category;
+          // A category that doesn't fit on one screen is spread evenly (e.g. 5 + 5 rather than 7 + 3).
+          const pageCount = Math.ceil(articles.length / perScreen);
+          const perPage = Math.ceil(articles.length / pageCount);
+          for (let i = 0; i < articles.length; i += perPage) {
+            pages.push({ category, articles: articles.slice(i, i + perPage) });
+          }
         }
       }
-      pageIndex = Math.min(pageIndex, pages.length - 1);
+      pageIndex = Math.max(0, Math.min(pageIndex, pages.length - 1));
     }
 
     function showPage() {
-      const { category, articles } = pages[pageIndex];
-      titleEl.textContent = category.label;
-      titleEl.className = `section-title ${category.key}`;
-      newsEl.replaceChildren(...articles.map(makeStory));
-      fitTitles();
+      const page = pages[pageIndex];
+      if (page.plan) {
+        titleEl.textContent = "Daily Plan";
+        titleEl.className = "section-title plan";
+        newsEl.replaceChildren(makePlan(page.plan));
+      } else {
+        titleEl.textContent = page.category.label;
+        titleEl.className = `section-title ${page.category.key}`;
+        newsEl.replaceChildren(...page.articles.map(makeStory));
+        fitTitles();
+      }
       document.getElementById("page-dots").replaceChildren(...(pages.length > 1 ? pages : []).map((_, i) => {
         const dot = document.createElement("span");
         dot.classList.toggle("active", i === pageIndex);
         return dot;
       }));
+      scheduleNext();
     }
 
     function render(error) {
@@ -586,8 +780,15 @@
       showPage();
     }
 
-    function nextPage() {
+    // Each screen starts its own timer when shown, so its duration always matches what's on screen.
+    let pageTimer = null;
+    function scheduleNext() {
+      clearTimeout(pageTimer);
       if (pages.length < 2) return;
+      pageTimer = setTimeout(nextPage, pages[pageIndex].plan ? PLAN_PAGE_MS : PAGE_MS);
+    }
+
+    function nextPage() {
       newsEl.classList.add("fading");
       titleEl.classList.add("fading");
       setTimeout(() => {
@@ -595,6 +796,18 @@
         showPage();
         newsEl.classList.remove("fading");
       }, FADE_MS);
+    }
+
+    async function refreshPlan() {
+      try {
+        const res = await fetch("/api/plan");
+        const data = await res.json();
+        if (JSON.stringify(data.plan) === JSON.stringify(plan)) return;
+        plan = data.plan;
+        render();
+      } catch (err) {
+        // Keep showing the last plan until the server is reachable again.
+      }
     }
 
     async function refreshNews() {
@@ -615,11 +828,12 @@
     setInterval(refreshWeather, WEATHER_REFRESH_MS);
     refreshNews();
     setInterval(refreshNews, NEWS_REFRESH_MS);
-    setInterval(nextPage, PAGE_MS);
+    refreshPlan();
+    setInterval(refreshPlan, PLAN_REFRESH_MS);
     // Re-split whenever the news area changes size (window resize, or the header growing once weather loads).
     let lastHeight = 0;
     new ResizeObserver(() => {
-      if (newsEl.clientHeight === lastHeight || !categories.length) return;
+      if (newsEl.clientHeight === lastHeight || !pages.length) return;
       lastHeight = newsEl.clientHeight;
       render();
     }).observe(newsEl);

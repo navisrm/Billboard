@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
+from daily_plan import get_plan
 from news_fetcher import get_news
 from stock_fetcher import get_prices, get_tickers
 from weather_fetcher import get_weather
@@ -110,6 +111,12 @@ async def api_weather():
 async def api_news():
     async with state_lock:
         return JSONResponse(state["news"] or {"categories": [], "fetched_at": None, "error": None})
+
+
+@app.get("/api/plan")
+async def api_plan():
+    # Read on each request so editing daily_plan.md shows up without a restart.
+    return JSONResponse({"plan": get_plan()})
 
 
 @app.get("/api/prices")
