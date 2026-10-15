@@ -36,11 +36,152 @@
     body::before { left: 0; }
     body::after { right: 0; }
     header {
+      position: relative;
+      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 2.5vh 4vw;
       border-bottom: 0.5vh solid var(--red);
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom));
+      transition: background 2s ease;
+    }
+    header > div {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ---- Live sky behind the greeting, driven by the current weather (like the iPhone Weather app). ---- */
+    /* Every sky is kept dark enough that the white header text stays readable. */
+    .day.clear { --sky-top: #1f6fc0; --sky-bottom: #4f9ee0; }
+    .day.partly { --sky-top: #3a74b3; --sky-bottom: #6f9fcf; }
+    .day.cloudy { --sky-top: #4f6174; --sky-bottom: #6b7b8b; }
+    .day.fog { --sky-top: #5a6671; --sky-bottom: #737e88; }
+    .day.rain { --sky-top: #34495c; --sky-bottom: #566b7e; }
+    .day.snow { --sky-top: #526a84; --sky-bottom: #6d839a; }
+    .day.storm { --sky-top: #232a35; --sky-bottom: #3d4756; }
+    .night.clear { --sky-top: #07122b; --sky-bottom: #1b2f5c; }
+    .night.partly { --sky-top: #0e1a33; --sky-bottom: #26385a; }
+    .night.cloudy { --sky-top: #1a232f; --sky-bottom: #333e4c; }
+    .night.fog { --sky-top: #252c34; --sky-bottom: #40484f; }
+    .night.rain { --sky-top: #101823; --sky-bottom: #263443; }
+    .night.snow { --sky-top: #1f2a3a; --sky-bottom: #3c4a60; }
+    .night.storm { --sky-top: #0a0d12; --sky-bottom: #1f252e; }
+    #sky {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+    #sky > * {
+      position: absolute;
+    }
+    .sun {
+      right: 10vw;
+      top: -14vh;
+      width: 34vh;
+      height: 34vh;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 238, 170, 0.85) 0%, rgba(255, 210, 90, 0.35) 35%, rgba(255, 200, 80, 0) 70%);
+      animation: sun-pulse 7s ease-in-out infinite;
+    }
+    @keyframes sun-pulse {
+      50% { transform: scale(1.12); opacity: 0.85; }
+    }
+    .moon {
+      right: 30vw;
+      top: 2.5vh;
+      width: 5vh;
+      height: 5vh;
+      border-radius: 50%;
+      background: #f3efe0;
+      box-shadow: 0 0 3vh 1vh rgba(243, 239, 224, 0.35);
+    }
+    .star {
+      width: 2px;
+      height: 2px;
+      border-radius: 50%;
+      background: #fff;
+      animation: twinkle var(--dur) ease-in-out infinite;
+      animation-delay: var(--delay);
+    }
+    @keyframes twinkle {
+      50% { opacity: 0.2; }
+    }
+    .cloud {
+      width: 26vw;
+      height: 12vh;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, var(--alpha)) 0%, rgba(255, 255, 255, 0) 68%);
+      animation: drift var(--dur) linear infinite;
+      animation-delay: var(--delay);
+    }
+    @keyframes drift {
+      from { transform: translateX(-30vw); }
+      to { transform: translateX(110vw); }
+    }
+    .fog-band {
+      left: -20vw;
+      width: 140vw;
+      height: 6vh;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
+      animation: fog-slide var(--dur) ease-in-out infinite alternate;
+    }
+    @keyframes fog-slide {
+      from { transform: translateX(-10vw); }
+      to { transform: translateX(10vw); }
+    }
+    .drop {
+      top: 0;
+      width: 2px;
+      height: 3.5vh;
+      background: linear-gradient(rgba(255, 255, 255, 0), rgba(220, 235, 255, 0.65));
+      animation: fall var(--dur) linear infinite;
+      animation-delay: var(--delay);
+    }
+    @keyframes fall {
+      from { transform: translateY(-5vh) rotate(12deg); }
+      to { transform: translateY(26vh) rotate(12deg); }
+    }
+    .flake {
+      top: 0;
+      width: 0.7vh;
+      height: 0.7vh;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      animation: snow-fall var(--dur) linear infinite;
+      animation-delay: var(--delay);
+    }
+    @keyframes snow-fall {
+      0% { transform: translate(0, -3vh); }
+      50% { transform: translate(1.5vw, 11vh); }
+      100% { transform: translate(0, 26vh); }
+    }
+    #sky-preview {
+      position: absolute;
+      left: 50%;
+      bottom: 1vh;
+      transform: translateX(-50%);
+      z-index: 2;
+      font-size: 0.9vw;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 0.3vh 0.8vw;
+      border-radius: 1vh;
+      background: rgba(0, 0, 0, 0.45);
+    }
+    .flash {
+      inset: 0;
+      background: #fff;
+      opacity: 0;
+      animation: lightning 9s infinite;
+    }
+    @keyframes lightning {
+      0%, 90%, 92%, 95%, 100% { opacity: 0; }
+      91% { opacity: 0.55; }
+      94% { opacity: 0.35; }
     }
     .greeting-line {
       display: flex;
@@ -51,6 +192,7 @@
       width: 3.6vw;
       height: 3.6vw;
       flex: none;
+      filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
     }
     #greeting {
       font-size: 3.8vw;
@@ -59,7 +201,7 @@
     }
     #clock {
       font-size: 1.5vw;
-      color: var(--muted);
+      color: rgba(255, 255, 255, 0.92);
       margin-top: 0.6vh;
       margin-left: 4.8vw;
     }
@@ -75,7 +217,6 @@
       font-size: 3.2vw;
       font-weight: 600;
       line-height: 1;
-      color: var(--red);
     }
     #weather .desc {
       font-size: 1.3vw;
@@ -83,7 +224,7 @@
     }
     #weather .meta {
       font-size: 1vw;
-      color: var(--muted);
+      color: rgba(255, 255, 255, 0.9);
       margin-top: 0.3vh;
     }
     main {
@@ -199,10 +340,11 @@
       <path d="m-90 2030 45-863a95 95 0 0 0-111-98l-859 151 116-320a65 65 0 0 0-20-73l-941-762 212-99a65 65 0 0 0 34-79l-186-572 542 115a65 65 0 0 0 73-38l105-247 423 454a65 65 0 0 0 111-57l-204-1052 327 189a65 65 0 0 0 91-27l332-652 332 652a65 65 0 0 0 91 27l327-189-204 1052a65 65 0 0 0 111 57l423-454 105 247a65 65 0 0 0 73 38l542-115-186 572a65 65 0 0 0 34 79l212 99-941 762a65 65 0 0 0-20 73l116 320-859-151a95 95 0 0 0-111 98l45 863z"/>
     </symbol>
   </svg>
-  <header>
+  <header id="header" class="day cloudy">
+    <div id="sky" aria-hidden="true"></div>
     <div>
       <div class="greeting-line">
-        <svg class="leaf-icon" fill="#c8102e"><use href="#leaf"/></svg>
+        <svg class="leaf-icon" fill="#fff"><use href="#leaf"/></svg>
         <h1 id="greeting"></h1>
       </div>
       <div id="clock"></div>
@@ -257,11 +399,103 @@
         " · " + now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
     }
 
+    // Preview any sky without waiting for the weather: /?sky=rain-night, /?sky=clear-day, ...
+    const SKY_OVERRIDE = new URLSearchParams(location.search).get("sky");
+    let currentSky = "";
+
+    function rand(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function addParticles(sky, count, className, place) {
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement("div");
+        el.className = className;
+        place(el.style, i);
+        sky.append(el);
+      }
+    }
+
+    function setSky(condition, isDay) {
+      const key = `${condition}-${isDay ? "day" : "night"}`;
+      if (key === currentSky) return;
+      currentSky = key;
+      document.getElementById("header").className = `${isDay ? "day" : "night"} ${condition}`;
+
+      const sky = document.getElementById("sky");
+      sky.replaceChildren();
+      const add = (className) => {
+        const el = document.createElement("div");
+        el.className = className;
+        sky.append(el);
+      };
+
+      if (condition === "clear" || condition === "partly") {
+        if (isDay) {
+          add("sun");
+        } else {
+          add("moon");
+          addParticles(sky, 45, "star", (st) => {
+            st.left = `${rand(0, 100)}%`;
+            st.top = `${rand(0, 95)}%`;
+            st.setProperty("--dur", `${rand(2, 5)}s`);
+            st.setProperty("--delay", `${-rand(0, 5)}s`);
+          });
+        }
+      }
+      const clouds = { partly: [3, 0.55], cloudy: [6, 0.4], rain: [5, 0.25], snow: [4, 0.35], storm: [5, 0.18], fog: [2, 0.3] };
+      if (clouds[condition]) {
+        const [count, alpha] = clouds[condition];
+        addParticles(sky, count, "cloud", (st, i) => {
+          st.top = `${rand(-4, 9)}vh`;
+          st.setProperty("--alpha", isDay ? alpha : alpha * 0.5);
+          // Negative delays spread the clouds across the sky from the first frame.
+          const dur = rand(70, 120);
+          st.setProperty("--dur", `${dur}s`);
+          st.setProperty("--delay", `${-dur * (i / count)}s`);
+        });
+      }
+      if (condition === "fog") {
+        addParticles(sky, 4, "fog-band", (st, i) => {
+          st.top = `${3 + i * 5}vh`;
+          st.setProperty("--dur", `${rand(12, 20)}s`);
+        });
+      }
+      if (condition === "rain" || condition === "storm") {
+        addParticles(sky, condition === "storm" ? 90 : 60, "drop", (st) => {
+          st.left = `${rand(-5, 100)}%`;
+          st.setProperty("--dur", `${rand(0.55, 0.9)}s`);
+          st.setProperty("--delay", `${-rand(0, 1)}s`);
+        });
+      }
+      if (condition === "storm") add("flash");
+      if (condition === "snow") {
+        addParticles(sky, 50, "flake", (st) => {
+          st.left = `${rand(0, 100)}%`;
+          st.setProperty("--dur", `${rand(6, 11)}s`);
+          st.setProperty("--delay", `${-rand(0, 11)}s`);
+        });
+      }
+    }
+
     async function refreshWeather() {
       try {
         const res = await fetch("/api/weather");
         const { weather: w } = await res.json();
         if (!w) return;
+        if (SKY_OVERRIDE) {
+          const [condition, time] = SKY_OVERRIDE.split("-");
+          setSky(condition, time !== "night");
+          // Label it so a preview isn't mistaken for the real weather.
+          if (!document.getElementById("sky-preview")) {
+            const badge = document.createElement("div");
+            badge.id = "sky-preview";
+            badge.textContent = `PREVIEW: ${SKY_OVERRIDE.toUpperCase()} (not live weather)`;
+            document.getElementById("header").append(badge);
+          }
+        } else {
+          setSky(w.condition, w.is_day);
+        }
         document.getElementById("weather").innerHTML = `
           <span class="icon">${w.icon}</span>
           <span class="details">

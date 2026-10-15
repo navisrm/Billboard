@@ -43,13 +43,32 @@ WEATHER_CODES = {
 WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
 
 
+# Groups weather codes into the sky animations the dashboard header knows how to draw.
+def _condition(code):
+    if code in (0, 1):
+        return "clear"
+    if code == 2:
+        return "partly"
+    if code == 3:
+        return "cloudy"
+    if code in (45, 48):
+        return "fog"
+    if code in (71, 73, 75, 77, 85, 86):
+        return "snow"
+    if code in (95, 96, 99):
+        return "storm"
+    if 51 <= code <= 82:
+        return "rain"
+    return "cloudy"
+
+
 def get_weather():
     response = httpx.get(
         WEATHER_URL,
         params={
             "latitude": LATITUDE,
             "longitude": LONGITUDE,
-            "current": "temperature_2m,apparent_temperature,weather_code",
+            "current": "temperature_2m,apparent_temperature,weather_code,is_day",
             "daily": "temperature_2m_max,temperature_2m_min",
             "timezone": "auto",
             "forecast_days": 1,
@@ -68,6 +87,8 @@ def get_weather():
         "feels_like": current["apparent_temperature"],
         "description": description,
         "icon": icon,
+        "condition": _condition(current["weather_code"]),
+        "is_day": bool(current["is_day"]),
         "high": daily["temperature_2m_max"][0],
         "low": daily["temperature_2m_min"][0],
     }
