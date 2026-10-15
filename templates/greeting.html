@@ -329,6 +329,82 @@
       margin-top: 0.5vh;
     }
     /* ---- Daily plan screen ---- */
+    /* Scenic backdrop shown only on the plan screen: sunrise over mountains and a lake. */
+    #calm {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    #calm svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .scene-cloud {
+      animation: scene-drift 140s linear infinite;
+    }
+    @keyframes scene-drift {
+      from { transform: translateX(-400px); }
+      to { transform: translateX(2000px); }
+    }
+    .shimmer {
+      animation: shimmer 6s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.15; transform: translateX(0); }
+      50% { opacity: 0.55; transform: translateX(25px); }
+    }
+    .sun-glow {
+      animation: sun-glow 10s ease-in-out infinite;
+      transform-origin: 1180px 430px;
+    }
+    @keyframes sun-glow {
+      40% { transform: scale(1.12); }
+    }
+    main.plan-mode #calm {
+      opacity: 1;
+    }
+    #maple {
+      transition: opacity 1.2s ease;
+    }
+    main.plan-mode #maple {
+      opacity: 0;
+    }
+    main.plan-mode .plan-grid {
+      gap: 2.6vh 2.2vw;
+    }
+    main.plan-mode .step ul {
+      font-size: 1.12vw;
+      line-height: 1.45;
+    }
+    /* Frosted cards: enough white that dark text stays crisp, enough see-through to show the scene. */
+    main.plan-mode .step {
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0.6vh 2vh rgba(0, 0, 0, 0.15);
+    }
+    main.plan-mode .section-title {
+      flex: none;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 0.5vh 1vw;
+      border-radius: 0.6vw;
+    }
+    /* Checklist, breathing guide and note sit on one white panel so they stay readable over the scene. */
+    .plan-panel {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 0.8vw;
+      padding: 1.2vh 1.3vw;
+      display: flex;
+      flex-direction: column;
+      gap: 1vh;
+      box-shadow: 0 0.6vh 2vh rgba(0, 0, 0, 0.15);
+    }
+    main.plan-mode .plan-note {
+      color: #3f4650;
+    }
     .section-title.plan { color: var(--red); }
     .plan {
       flex: 1;
@@ -477,6 +553,56 @@
   </header>
 
   <main>
+    <div id="calm" aria-hidden="true">
+      <svg viewBox="0 0 1600 700" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="scene-sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#6fafdc"/>
+            <stop offset="0.55" stop-color="#cbe3f1"/>
+            <stop offset="1" stop-color="#fde2c2"/>
+          </linearGradient>
+          <linearGradient id="scene-lake" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#8fbcd4"/>
+            <stop offset="1" stop-color="#3f7596"/>
+          </linearGradient>
+          <radialGradient id="scene-sun">
+            <stop offset="0" stop-color="#fff7de" stop-opacity="1"/>
+            <stop offset="0.25" stop-color="#ffe2a8" stop-opacity="0.8"/>
+            <stop offset="1" stop-color="#ffd59a" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect width="1600" height="470" fill="url(#scene-sky)"/>
+        <circle class="sun-glow" cx="1180" cy="430" r="230" fill="url(#scene-sun)"/>
+        <circle cx="1180" cy="430" r="48" fill="#fff4d6"/>
+        <g fill="#fff" opacity="0.85">
+          <g class="scene-cloud" style="animation-delay: -20s"><ellipse cx="200" cy="90" rx="110" ry="26"/><ellipse cx="260" cy="72" rx="70" ry="30"/></g>
+          <g class="scene-cloud" style="animation-delay: -75s"><ellipse cx="300" cy="160" rx="90" ry="20"/><ellipse cx="340" cy="146" rx="55" ry="24"/></g>
+          <g class="scene-cloud" style="animation-delay: -115s"><ellipse cx="150" cy="60" rx="80" ry="18"/></g>
+        </g>
+        <g id="scene-land">
+          <path fill="#a9c1d6" d="M0 400 L120 330 L230 380 L360 300 L480 370 L600 320 L720 380 L860 290 L1000 360 L1120 310 L1260 370 L1400 300 L1520 350 L1600 330 L1600 470 L0 470Z"/>
+          <path fill="#6d8cab" d="M0 470 L0 420 L180 260 L300 360 L420 240 L560 380 L700 230 L860 400 L980 300 L1100 420 L1250 250 L1400 390 L1520 320 L1600 360 L1600 470Z"/>
+          <g fill="#f4f8fb">
+            <path d="M150 287 L180 260 L212 288 L196 284 L182 296 L166 285Z"/>
+            <path d="M386 272 L420 240 L452 274 L436 268 L421 282 L404 270Z"/>
+            <path d="M664 264 L700 230 L736 270 L718 264 L702 278 L684 266Z"/>
+            <path d="M952 326 L980 300 L1006 330 L992 325 L980 335 L966 326Z"/>
+            <path d="M1216 282 L1250 250 L1284 286 L1267 280 L1251 293 L1234 282Z"/>
+          </g>
+          <path fill="#2f5a4a" d="M0 470 Q200 432 400 452 T800 448 T1200 454 T1600 444 L1600 472 L0 472Z"/>
+          <g id="scene-trees" fill="#1f4337"></g>
+        </g>
+        <rect y="470" width="1600" height="230" fill="url(#scene-lake)"/>
+        <use href="#scene-land" transform="translate(0 940) scale(1 -1)" opacity="0.22"/>
+        <g fill="#fff">
+          <rect class="shimmer" x="1080" y="500" width="200" height="3" rx="1.5"/>
+          <rect class="shimmer" x="1120" y="530" width="130" height="3" rx="1.5" style="animation-delay: -2s"/>
+          <rect class="shimmer" x="1050" y="565" width="240" height="3" rx="1.5" style="animation-delay: -4s"/>
+          <rect class="shimmer" x="300" y="600" width="160" height="2" rx="1" style="animation-delay: -3s"/>
+          <rect class="shimmer" x="700" y="640" width="200" height="2" rx="1" style="animation-delay: -1s"/>
+        </g>
+      </svg>
+    </div>
     <svg id="maple" fill="#c8102e" aria-hidden="true"><use href="#leaf"/></svg>
     <div class="section-head">
       <div class="section-title" id="section-title">News</div>
@@ -717,9 +843,11 @@
 
       const strip = el("div", "plan-strip");
       strip.append(pacer, checklist);
+      const panel = el("div", "plan-panel");
+      panel.append(strip);
+      if (p.important) panel.append(el("div", "plan-note", p.important));
       const wrap = el("div", "plan");
-      wrap.append(grid, strip);
-      if (p.important) wrap.append(el("div", "plan-note", p.important));
+      wrap.append(grid, panel);
       return wrap;
     }
 
@@ -747,6 +875,7 @@
 
     function showPage() {
       const page = pages[pageIndex];
+      document.querySelector("main").classList.toggle("plan-mode", !!page.plan);
       if (page.plan) {
         titleEl.textContent = "Daily Plan";
         titleEl.className = "section-title plan";
@@ -821,6 +950,19 @@
         // Keep showing the last headlines until the server is reachable again.
       }
     }
+
+    // Pine treeline along the lake shore for the plan screen's scenery.
+    (function plantTrees() {
+      const trees = document.getElementById("scene-trees");
+      let points = "";
+      for (let x = -10; x < 1610; x += 14 + Math.random() * 16) {
+        const h = 35 + Math.random() * 55;
+        const w = h * 0.38;
+        const base = 470 - Math.random() * 6;
+        points += `<polygon points="${x},${base} ${x + w / 2},${base - h} ${x + w},${base}"/>`;
+      }
+      trees.innerHTML = points;
+    })();
 
     tick();
     setInterval(tick, 1000);
