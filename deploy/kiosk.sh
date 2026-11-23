@@ -10,5 +10,18 @@ until curl -fs -o /dev/null "$URL"; do
 done
 
 BROWSER="$(command -v chromium || command -v chromium-browser)"
-exec "$BROWSER" --kiosk --noerrdialogs --disable-infobars --no-first-run \
-  --disable-session-crashed-bubble --password-store=basic --ozone-platform-hint=auto "$URL"
+
+# Raspberry Pi OS uses Wayland (labwc). Newer Chromium falls back to X11 with
+# --ozone-platform-hint=auto, which gives a blank screen or no window, so select the platform.
+if [ -n "${WAYLAND_DISPLAY:-}" ]; then
+  PLATFORM=wayland
+else
+  PLATFORM=x11
+fi
+
+# Start the browser again if it crashes or closes, so the screen does not stay blank.
+while true; do
+  "$BROWSER" --kiosk --noerrdialogs --disable-infobars --no-first-run \
+    --disable-session-crashed-bubble --password-store=basic --ozone-platform="$PLATFORM" "$URL"
+  sleep 5
+done

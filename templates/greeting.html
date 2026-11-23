@@ -528,6 +528,67 @@
       color: var(--muted);
       font-style: italic;
     }
+    /* ---- Insight screen: a short essay on the same scenic backdrop as the plan ---- */
+    .insight {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1.8vh;
+      padding-top: 1vh;
+    }
+    .insight-panel {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 0.8vw;
+      padding: 1.8vh 1.6vw;
+      box-shadow: 0 0.6vh 2vh rgba(0, 0, 0, 0.15);
+      font-size: 1.15vw;
+      line-height: 1.45;
+    }
+    .insight-panel p {
+      margin: 0;
+    }
+    .insight-panel p + p {
+      margin-top: 1vh;
+    }
+    .insight strong {
+      color: var(--red);
+    }
+    .insight-lead {
+      border-left: 0.4vw solid var(--red);
+    }
+    .insight-lead .headline {
+      font-size: 1.9vw;
+      font-weight: 600;
+      line-height: 1.25;
+      margin-bottom: 1.2vh;
+    }
+    .insight-heading {
+      font-size: 0.95vw;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-right: 1vw;
+    }
+    .insight-cards {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2.2vw;
+    }
+    .insight-cards .step {
+      font-size: 1.1vw;
+      line-height: 1.45;
+    }
+    .insight-cards .step-head {
+      font-size: 1.3vw;
+    }
+    .insight-close p:last-child {
+      font-size: 1.25vw;
+      font-weight: 500;
+    }
     /* ---- Market screens: dark trading-terminal backdrop ---- */
     #market-bg {
       position: absolute;
@@ -818,6 +879,8 @@
     // The daily plan has more to read, so it stays up longer.
     const PLAN_PAGE_MS = 30000;
     const PLAN_REFRESH_MS = 30 * 60000;
+    // The insight is a short essay, so it stays up the longest.
+    const INSIGHT_PAGE_MS = 45000;
     // The server refreshes prices every 5 min while the market is open.
     const MARKET_REFRESH_MS = 2 * 60000;
     const MARKET_OVERVIEW_MS = 20000;
@@ -830,6 +893,7 @@
     const titleEl = document.getElementById("section-title");
     let categories = [];
     let plan = null;
+    let insight = null;
     let market = null;
     // Each page is one screen: { category, articles }.
     let pages = [];
@@ -995,18 +1059,21 @@
       }
     }
 
-    // Renders "**bold**" segments from the plan file as <strong>.
+    // Renders "**bold**" segments as <strong> and "*italic*" segments as <em>, from the plan and insight files.
     function richText(el, text) {
-      text.split(/\*\*(.+?)\*\*/).forEach((part, i) => {
+      text.split(/(\*\*.+?\*\*|\*[^*]+?\*)/).forEach((part) => {
         if (!part) return;
-        if (i % 2) {
-          const strong = document.createElement("strong");
-          strong.textContent = part;
-          el.append(strong);
+        const bold = part.match(/^\*\*(.+)\*\*$/);
+        const italic = !bold && part.match(/^\*(.+)\*$/);
+        if (bold || italic) {
+          const node = document.createElement(bold ? "strong" : "em");
+          node.textContent = (bold || italic)[1];
+          el.append(node);
         } else {
           el.append(part);
         }
       });
+      return el;
     }
 
     function el(tag, className, text) {
@@ -1051,6 +1118,38 @@
       if (p.important) panel.append(el("div", "plan-note", p.important));
       const wrap = el("div", "plan");
       wrap.append(grid, panel);
+      return wrap;
+    }
+
+    function makeInsight(d) {
+      const wrap = el("div", "insight");
+      const lead = el("div", "insight-panel insight-lead");
+      d.intro.forEach((text, i) => lead.append(richText(el("p", i ? "" : "headline"), text)));
+      wrap.append(lead);
+
+      for (const section of d.sections) {
+        // The heading sits at the start of the first paragraph, to keep vertical space for the cards.
+        const paras = section.paragraphs.map((text) => richText(el("p"), text));
+        if (!paras.length) paras.push(el("p"));
+        paras[0].prepend(el("span", "insight-heading", section.heading));
+        if (section.bullets.length) {
+          // A section with bullets: its paragraphs as an intro, then one card for each bullet.
+          const intro = el("div", "insight-panel");
+          intro.append(...paras);
+          const cards = el("div", "insight-cards");
+          for (const bullet of section.bullets) {
+            const card = el("div", "step");
+            if (bullet.label) card.append(el("div", "step-head", bullet.label));
+            card.append(richText(el("div"), bullet.text));
+            cards.append(card);
+          }
+          wrap.append(intro, cards);
+        } else {
+          const panel = el("div", "insight-panel insight-close");
+          panel.append(...paras);
+          wrap.append(panel);
+        }
+      }
       return wrap;
     }
 
@@ -1139,6 +1238,7 @@
     function paginate() {
       pages = [];
       if (plan) pages.push({ plan });
+      if (insight) pages.push({ insight });
       if (categories.length) {
         newsEl.classList.add("measuring");
         newsEl.replaceChildren(makeStory(categories[0].articles[0]));
@@ -1175,6 +1275,10 @@
         titleEl.textContent = "Sector Leaders";
         titleEl.className = "section-title";
         newsEl.replaceChildren(makeSectorColumns(page.marketSectors));
+      } else if (page.insight) {
+        titleEl.textContent = page.insight.title || "Insight";
+        titleEl.className = "section-title plan";
+        newsEl.replaceChildren(makeInsight(page.insight));
       } else if (page.plan) {
         titleEl.textContent = "Daily Plan";
         titleEl.className = "section-title plan";
@@ -1214,14 +1318,15 @@
       clearTimeout(pageTimer);
       if (pages.length < 2) return;
       const page = pages[pageIndex];
-      const duration = page.plan ? PLAN_PAGE_MS : page.marketOverview ? MARKET_OVERVIEW_MS : PAGE_MS;
+      const duration = page.insight ? INSIGHT_PAGE_MS : page.plan ? PLAN_PAGE_MS
+        : page.marketOverview ? MARKET_OVERVIEW_MS : PAGE_MS;
       pageTimer = setTimeout(nextPage, duration);
     }
 
     // Switches the area's backdrop (plain, scenic plan, or market) for the given page.
     function applyBackdrop(page) {
       const main = document.querySelector("main");
-      main.classList.toggle("plan-mode", !!page.plan);
+      main.classList.toggle("plan-mode", !!(page.plan || page.insight));
       main.classList.toggle("market-mode", !!(page.marketOverview || page.marketSectors));
     }
 
@@ -1258,6 +1363,18 @@
         render();
       } catch (err) {
         // Keep showing the last plan until the server is reachable again.
+      }
+    }
+
+    async function refreshInsight() {
+      try {
+        const res = await fetch("/api/insight");
+        const data = await res.json();
+        if (JSON.stringify(data.insight) === JSON.stringify(insight)) return;
+        insight = data.insight;
+        render();
+      } catch (err) {
+        // Keep showing the last insight until the server is reachable again.
       }
     }
 
@@ -1307,6 +1424,8 @@
     setInterval(refreshNews, NEWS_REFRESH_MS);
     refreshPlan();
     setInterval(refreshPlan, PLAN_REFRESH_MS);
+    refreshInsight();
+    setInterval(refreshInsight, PLAN_REFRESH_MS);
     refreshMarket();
     setInterval(refreshMarket, MARKET_REFRESH_MS);
     // Re-split whenever the news area changes size (window resize, or the header growing once weather loads).

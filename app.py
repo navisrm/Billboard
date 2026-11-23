@@ -15,6 +15,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
 from daily_plan import get_plan
+from insight import get_insight
 from market_fetcher import get_market
 from news_fetcher import get_news
 from stock_fetcher import get_prices, get_tickers
@@ -142,6 +143,12 @@ async def api_market():
 async def api_plan():
     # Read on each request so editing daily_plan.md shows up without a restart.
     return JSONResponse({"plan": get_plan()})
+
+
+@app.get("/api/insight")
+async def api_insight():
+    # Read on each request so editing insight.md shows up without a restart.
+    return JSONResponse({"insight": get_insight()})
 
 
 @app.get("/api/prices")

@@ -12,7 +12,7 @@ help:
 	@echo "make push MSG=\"...\"          Commit all changes and push to GitHub"
 	@echo "make deploy                  Push, then pull + install + restart on the Pi"
 	@echo "make env                     Copy local .env to the Pi"
-	@echo "make plan                    Copy daily_plan.md to the Pi"
+	@echo "make plan                    Copy daily_plan.md and insight.md to the Pi"
 	@echo "make status | logs | restart Manage the service on the Pi"
 	@echo "make reboot                  Reboot the Pi (reloads the kiosk browser too)"
 	@echo "make ssh                     Open a shell on the Pi"
@@ -28,7 +28,7 @@ push:
 deploy: push
 	ssh $(PI) 'if [ -d $(APP_DIR)/.git ]; then git -C $(APP_DIR) pull --ff-only origin $(BRANCH); else git clone -b $(BRANCH) $(REPO) $(APP_DIR); fi'
 	@if [ -f .env ]; then $(MAKE) env; fi
-	@if [ -f daily_plan.md ]; then $(MAKE) plan; fi
+	@if [ -f daily_plan.md ] || [ -f insight.md ]; then $(MAKE) plan; fi
 	ssh -t $(PI) 'bash $(APP_DIR)/deploy/install.sh'
 
 env:
@@ -36,7 +36,8 @@ env:
 
 # Personal content shown on screen; kept out of the public repo, so it's copied directly.
 plan:
-	scp daily_plan.md $(PI):$(APP_DIR)/daily_plan.md
+	@if [ -f daily_plan.md ]; then scp daily_plan.md $(PI):$(APP_DIR)/daily_plan.md; fi
+	@if [ -f insight.md ]; then scp insight.md $(PI):$(APP_DIR)/insight.md; fi
 
 status:
 	ssh $(PI) 'systemctl --no-pager status billboard.service'
