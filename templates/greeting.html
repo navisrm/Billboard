@@ -299,34 +299,246 @@
     #news.fading {
       opacity: 0;
     }
-    .story {
-      /* Row height is set by paginate() so a full screen of rows fills the space exactly. */
-      flex: 0 0 var(--row-height, auto);
-      box-sizing: border-box;
+    /* ---- News screens: a lead story and a numbered list on a dark backdrop tinted by the category ---- */
+    main {
+      --accent: var(--red);
+    }
+    main.news-mode[data-cat="top"] { --accent: #ff5a6e; }
+    main.news-mode[data-cat="politics"] { --accent: #6ea8ff; }
+    main.news-mode[data-cat="business"] { --accent: #ffb347; }
+    main.news-mode[data-cat="health"] { --accent: #3ddc97; }
+    main.news-mode[data-cat="technology"] { --accent: #b48cff; }
+    #news-bg, #quote-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    #news-bg {
+      background: #0b101c;
+    }
+    /* Soft colour glows that drift slowly. Plain gradients, not blur filters, so the Pi GPU stays idle. */
+    .glow {
+      position: absolute;
+      width: 80vw;
+      height: 80vw;
+      border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--accent) 38%, transparent) 0%, transparent 62%);
+      animation: glow-drift var(--dur) ease-in-out infinite alternate;
+    }
+    .glow:nth-child(1) { left: -30vw; top: -45vw; --dur: 38s; }
+    .glow:nth-child(2) { right: -35vw; bottom: -50vw; --dur: 46s; opacity: 0.8; }
+    .glow:nth-child(3) { left: 25vw; top: -10vw; --dur: 54s; opacity: 0.35; }
+    @keyframes glow-drift {
+      from { transform: translate(0, 0) scale(1); }
+      to { transform: translate(12vw, 6vw) scale(1.15); }
+    }
+    main.news-mode #news-bg { opacity: 1; }
+    main.news-mode .section-title { color: var(--accent); }
+    .news-board {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 1.6vw;
+      padding-top: 0.5vh;
+      color: #eef2f8;
+    }
+    .news-board.solo {
+      grid-template-columns: 1fr;
+    }
+    .lead {
+      position: relative;
+      overflow: hidden;
+      border-radius: 1vw;
+      padding: 3.5vh 2.4vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 1.6vh;
+      background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 32%, transparent), rgba(255, 255, 255, 0.03) 70%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .lead .big-num {
+      position: absolute;
+      top: 1vh;
+      left: 1.8vw;
+      font-size: 13vw;
+      font-weight: 800;
+      line-height: 1;
+      color: transparent;
+      -webkit-text-stroke: 2px color-mix(in srgb, var(--accent) 55%, transparent);
+    }
+    .lead .tag {
+      align-self: flex-start;
+      font-size: 0.95vw;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: #0b101c;
+      background: var(--accent);
+      padding: 0.5vh 0.8vw;
+      border-radius: 0.4vw;
+    }
+    .lead .title {
+      font-size: 2.7vw;
+      font-weight: 700;
+      line-height: 1.2;
+      display: -webkit-box;
+      -webkit-line-clamp: 5;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .news-meta {
+      font-size: 1.05vw;
+      color: rgba(238, 242, 248, 0.65);
+    }
+    .news-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2vh;
+      min-height: 0;
+    }
+    .news-item {
+      flex: 1;
+      min-height: 0;
       display: flex;
       align-items: center;
-      gap: 1.5vw;
-      border-top: 1px solid var(--rule);
-      padding: 1.4vh 0;
+      gap: 1.3vw;
+      padding: 1vh 1.4vw;
+      border-radius: 0.8vw;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-left: 0.35vw solid var(--accent);
     }
-    #news.measuring .story {
+    .news-item .num {
       flex: none;
+      width: 3.2vw;
+      font-size: 2vw;
+      font-weight: 800;
+      color: var(--accent);
     }
-    .story .body {
-      flex: 1;
-      min-width: 0;
-    }
-    .story .title {
-      font-size: 2.4vw;
-      font-weight: 500;
-      white-space: nowrap;
+    .news-item .title {
+      font-size: 1.4vw;
+      font-weight: 600;
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow: hidden;
-      text-overflow: ellipsis;
     }
-    .story .meta {
+    .news-item .news-meta {
+      font-size: 0.95vw;
+      margin-top: 0.4vh;
+    }
+    /* New content rises in one piece at a time, so a page change feels alive. */
+    .rise {
+      animation: rise 0.7s ease-out both;
+      animation-delay: calc(var(--i, 0) * 90ms);
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(2.5vh); }
+    }
+
+    /* ---- Quote screen: one large quote at a time on a dark, warm backdrop ---- */
+    #quote-bg {
+      background:
+        radial-gradient(ellipse at 15% 10%, rgba(214, 168, 79, 0.22), transparent 55%),
+        radial-gradient(ellipse at 90% 100%, rgba(200, 16, 46, 0.22), transparent 55%),
+        linear-gradient(135deg, #0e0d12, #1b1822);
+    }
+    #quote-bg .mark {
+      position: absolute;
+      right: 5vw;
+      top: -4vh;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 55vh;
+      line-height: 1;
+      color: rgba(214, 168, 79, 0.08);
+    }
+    #quote-bg .sweep {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 30vw;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+      animation: sweep 14s linear infinite;
+    }
+    @keyframes sweep {
+      from { transform: translateX(-40vw) skewX(-15deg); }
+      to { transform: translateX(140vw) skewX(-15deg); }
+    }
+    main.quote-mode #quote-bg { opacity: 1; }
+    main.quote-mode .section-title { color: #d6a84f; }
+    main.news-mode #maple, main.quote-mode #maple { opacity: 0; }
+    main.news-mode #page-dots span, main.quote-mode #page-dots span { background: rgba(255, 255, 255, 0.25); }
+    main.news-mode #page-dots span.active { background: var(--accent); }
+    main.quote-mode #page-dots span.active { background: #d6a84f; }
+    .quotes {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      color: #f4efe6;
+    }
+    .quote-stage {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      padding: 0 6vw;
+    }
+    .quote-text {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 3.6vw;
+      line-height: 1.25;
+    }
+    .quote-text::before { content: "“"; color: #d6a84f; }
+    .quote-text::after { content: "”"; color: #d6a84f; }
+    .quote-lesson {
+      margin-top: 4vh;
+      padding-left: 1.4vw;
+      border-left: 0.3vw solid #d6a84f;
+      font-size: 1.6vw;
+      line-height: 1.4;
+      color: rgba(244, 239, 230, 0.75);
+      max-width: 60vw;
+    }
+    .quote-author {
+      margin-top: 3vh;
       font-size: 1.1vw;
-      color: var(--muted);
-      margin-top: 0.5vh;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #d6a84f;
+    }
+    /* One bar for each quote; the active bar fills while its quote is on screen. */
+    .quote-bars {
+      display: flex;
+      gap: 0.5vw;
+      padding: 0 6vw 1vh;
+    }
+    .quote-bars span {
+      flex: 1;
+      height: 0.5vh;
+      border-radius: 0.5vh;
+      background: rgba(255, 255, 255, 0.15);
+      overflow: hidden;
+    }
+    .quote-bars span.done { background: rgba(214, 168, 79, 0.6); }
+    .quote-bars span.active::after {
+      content: "";
+      display: block;
+      height: 100%;
+      background: #d6a84f;
+      animation: fill var(--quote-ms) linear both;
+    }
+    @keyframes fill {
+      from { width: 0; }
+      to { width: 100%; }
     }
     /* ---- Daily plan screen ---- */
     /* Scenic backdrop shown only on the plan screen: sunrise over mountains and a lake. */
@@ -862,6 +1074,8 @@
         </g>
       </svg>
     </div>
+    <div id="news-bg" aria-hidden="true"><div class="glow"></div><div class="glow"></div><div class="glow"></div></div>
+    <div id="quote-bg" aria-hidden="true"><div class="mark">“</div><div class="sweep"></div></div>
     <svg id="maple" fill="#c8102e" aria-hidden="true"><use href="#leaf"/></svg>
     <div class="section-head">
       <div class="section-title" id="section-title">News</div>
@@ -886,14 +1100,19 @@
     const MARKET_OVERVIEW_MS = 20000;
     const SECTORS_PER_SCREEN = 4;
     const FADE_MS = 800;
-    // Long headlines shrink the screen's titles down to this fraction of normal size before being cut off.
-    const MIN_TITLE_SCALE = 0.8;
+    const NEWS_PER_PAGE = 6;
+    // The quote screen shows a few quotes on each visit and starts from the next one on the following visit.
+    const QUOTE_MS = 10000;
+    const QUOTES_PER_VISIT = 3;
 
     const newsEl = document.getElementById("news");
     const titleEl = document.getElementById("section-title");
     let categories = [];
     let plan = null;
     let insight = null;
+    let quotes = null;
+    let quoteCursor = 0;
+    let quoteTimer = null;
     let market = null;
     // Each page is one screen: { category, articles }.
     let pages = [];
@@ -922,6 +1141,9 @@
 
     // Preview any sky without waiting for the weather: /?sky=rain-night, /?sky=clear-day, ...
     const SKY_OVERRIDE = new URLSearchParams(location.search).get("sky");
+    // Preview one screen without waiting for the rotation: /?show=quotes, news, plan, insight, market, sectors.
+    const SHOW_KEY = { news: "category", market: "marketOverview", sectors: "marketSectors" }[
+      new URLSearchParams(location.search).get("show")] || new URLSearchParams(location.search).get("show");
     let currentSky = "";
 
     function rand(min, max) {
@@ -1030,33 +1252,61 @@
       }
     }
 
-    // Headlines come from a third party, so build with textContent rather than innerHTML.
-    function makeStory(a) {
-      const story = document.createElement("div");
-      story.className = "story";
-      const title = document.createElement("div");
-      title.className = "title";
-      title.textContent = a.title;
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      meta.textContent = `${a.source} · ${timeAgo(a.published_at)}`;
-      const body = document.createElement("div");
-      body.className = "body";
-      body.append(title, meta);
-      story.append(body);
-      return story;
+    // Headlines come from a third party, so the news builders use textContent (through el), never innerHTML.
+    function makeNews(articles, firstNumber) {
+      const pad = (n) => String(n).padStart(2, "0");
+      const meta = (a) => el("div", "news-meta", `${a.source} · ${timeAgo(a.published_at)}`);
+      const [first, ...rest] = articles;
+
+      const lead = el("div", "lead rise");
+      lead.append(el("div", "big-num", pad(firstNumber)), el("div", "tag", "LATEST"), el("div", "title", first.title), meta(first));
+
+      const board = el("div", rest.length ? "news-board" : "news-board solo");
+      board.append(lead);
+      if (rest.length) {
+        const list = el("div", "news-list");
+        rest.forEach((a, i) => {
+          const item = el("div", "news-item rise");
+          item.style.setProperty("--i", i + 1);
+          const body = el("div");
+          body.append(el("div", "title", a.title), meta(a));
+          item.append(el("div", "num", pad(firstNumber + i + 1)), body);
+          list.append(item);
+        });
+        board.append(list);
+      }
+      return board;
     }
 
-    // Shrink every title on the screen together until the longest fits, so rows stay one size.
-    function fitTitles() {
-      const titles = [...newsEl.querySelectorAll(".title")];
-      if (!titles.length) return;
-      const base = parseFloat(getComputedStyle(titles[0]).fontSize);
-      let size = base;
-      while (titles.some((t) => t.scrollWidth > t.clientWidth) && size > base * MIN_TITLE_SCALE) {
-        size -= 1;
-        titles.forEach((t) => (t.style.fontSize = `${size}px`));
-      }
+    function makeQuotes(q) {
+      const wrap = el("div", "quotes");
+      wrap.style.setProperty("--quote-ms", `${QUOTE_MS}ms`);
+      const stage = el("div", "quote-stage");
+      const bars = el("div", "quote-bars");
+      q.quotes.forEach(() => bars.append(el("span")));
+      wrap.append(stage, bars);
+
+      // A data refresh can rebuild this screen; it shows the same quote again, and only the timer moves on.
+      let shown = 0;
+      const show = () => {
+        const index = quoteCursor % q.quotes.length;
+        const item = q.quotes[index];
+        const card = el("div", "rise");
+        card.append(el("blockquote", "quote-text", item.text));
+        if (item.lesson) card.append(el("div", "quote-lesson", item.lesson));
+        if (q.author) card.append(el("div", "quote-author", `— ${q.author}`));
+        stage.replaceChildren(card);
+        [...bars.children].forEach((bar, i) => (bar.className = i < index ? "done" : i === index ? "active" : ""));
+        shown += 1;
+        if (shown >= Math.min(QUOTES_PER_VISIT, q.quotes.length)) clearInterval(quoteTimer);
+      };
+      clearInterval(quoteTimer);
+      quoteTimer = setInterval(() => {
+        quoteCursor += 1;
+        show();
+      }, QUOTE_MS);
+      show();
+      return wrap;
     }
 
     // Renders "**bold**" segments as <strong> and "*italic*" segments as <em>, from the plan and insight files.
@@ -1239,22 +1489,13 @@
       pages = [];
       if (plan) pages.push({ plan });
       if (insight) pages.push({ insight });
-      if (categories.length) {
-        newsEl.classList.add("measuring");
-        newsEl.replaceChildren(makeStory(categories[0].articles[0]));
-        const perScreen = Math.max(1, Math.floor(newsEl.clientHeight / newsEl.firstChild.offsetHeight));
-        newsEl.classList.remove("measuring");
-        newsEl.style.setProperty("--row-height", `${newsEl.clientHeight / perScreen}px`);
-        for (const category of categories) {
-          const { articles } = category;
-          // A category that doesn't fit on one screen is spread evenly (e.g. 5 + 5 rather than 7 + 3).
-          const pageCount = Math.ceil(articles.length / perScreen);
-          const perPage = Math.ceil(articles.length / pageCount);
-          for (let i = 0; i < articles.length; i += perPage) {
-            pages.push({ category, articles: articles.slice(i, i + perPage) });
-          }
+      for (const category of categories) {
+        const { articles } = category;
+        for (let i = 0; i < articles.length; i += NEWS_PER_PAGE) {
+          pages.push({ category, articles: articles.slice(i, i + NEWS_PER_PAGE), firstNumber: i + 1 });
         }
       }
+      if (quotes) pages.push({ quotes });
       if (market) {
         pages.push({ marketOverview: market });
         for (let i = 0; i < market.sectors.length; i += SECTORS_PER_SCREEN) {
@@ -1266,8 +1507,13 @@
 
     function showPage() {
       const page = pages[pageIndex];
+      clearInterval(quoteTimer);
       applyBackdrop(page);
-      if (page.marketOverview) {
+      if (page.quotes) {
+        titleEl.textContent = page.quotes.author || "Quotes";
+        titleEl.className = "section-title";
+        newsEl.replaceChildren(makeQuotes(page.quotes));
+      } else if (page.marketOverview) {
         titleEl.textContent = "Markets";
         titleEl.className = "section-title";
         newsEl.replaceChildren(makeMarketOverview(page.marketOverview));
@@ -1286,8 +1532,7 @@
       } else {
         titleEl.textContent = page.category.label;
         titleEl.className = `section-title ${page.category.key}`;
-        newsEl.replaceChildren(...page.articles.map(makeStory));
-        fitTitles();
+        newsEl.replaceChildren(makeNews(page.articles, page.firstNumber));
       }
       document.getElementById("page-dots").replaceChildren(...(pages.length > 1 ? pages : []).map((_, i) => {
         const dot = document.createElement("span");
@@ -1299,6 +1544,10 @@
 
     function render(error) {
       paginate();
+      if (SHOW_KEY) {
+        const index = pages.findIndex((page) => page[SHOW_KEY]);
+        if (index >= 0) pageIndex = index;
+      }
       if (!pages.length) {
         const status = document.createElement("div");
         status.id = "news-status";
@@ -1318,7 +1567,8 @@
       clearTimeout(pageTimer);
       if (pages.length < 2) return;
       const page = pages[pageIndex];
-      const duration = page.insight ? INSIGHT_PAGE_MS : page.plan ? PLAN_PAGE_MS
+      const duration = page.quotes ? Math.min(QUOTES_PER_VISIT, page.quotes.quotes.length) * QUOTE_MS
+        : page.insight ? INSIGHT_PAGE_MS : page.plan ? PLAN_PAGE_MS
         : page.marketOverview ? MARKET_OVERVIEW_MS : PAGE_MS;
       pageTimer = setTimeout(nextPage, duration);
     }
@@ -1328,6 +1578,9 @@
       const main = document.querySelector("main");
       main.classList.toggle("plan-mode", !!(page.plan || page.insight));
       main.classList.toggle("market-mode", !!(page.marketOverview || page.marketSectors));
+      main.classList.toggle("news-mode", !!page.category);
+      main.classList.toggle("quote-mode", !!page.quotes);
+      if (page.category) main.dataset.cat = page.category.key;
     }
 
     function nextPage() {
@@ -1336,6 +1589,8 @@
       newsEl.classList.add("fading");
       titleEl.classList.add("fading");
       setTimeout(() => {
+        // The next visit to the quote screen starts after the last quote shown.
+        if (pages[pageIndex].quotes) quoteCursor += 1;
         pageIndex = (pageIndex + 1) % pages.length;
         showPage();
         newsEl.classList.remove("fading");
@@ -1375,6 +1630,18 @@
         render();
       } catch (err) {
         // Keep showing the last insight until the server is reachable again.
+      }
+    }
+
+    async function refreshQuotes() {
+      try {
+        const res = await fetch("/api/quotes");
+        const data = await res.json();
+        if (JSON.stringify(data.quotes) === JSON.stringify(quotes)) return;
+        quotes = data.quotes;
+        render();
+      } catch (err) {
+        // Keep showing the last quotes until the server is reachable again.
       }
     }
 
@@ -1426,15 +1693,10 @@
     setInterval(refreshPlan, PLAN_REFRESH_MS);
     refreshInsight();
     setInterval(refreshInsight, PLAN_REFRESH_MS);
+    refreshQuotes();
+    setInterval(refreshQuotes, PLAN_REFRESH_MS);
     refreshMarket();
     setInterval(refreshMarket, MARKET_REFRESH_MS);
-    // Re-split whenever the news area changes size (window resize, or the header growing once weather loads).
-    let lastHeight = 0;
-    new ResizeObserver(() => {
-      if (newsEl.clientHeight === lastHeight || !pages.length) return;
-      lastHeight = newsEl.clientHeight;
-      render();
-    }).observe(newsEl);
   </script>
 </body>
 </html>

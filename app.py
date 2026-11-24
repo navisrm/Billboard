@@ -18,6 +18,7 @@ from daily_plan import get_plan
 from insight import get_insight
 from market_fetcher import get_market
 from news_fetcher import get_news
+from quotes import get_quotes
 from stock_fetcher import get_prices, get_tickers
 from weather_fetcher import get_weather
 
@@ -149,6 +150,12 @@ async def api_plan():
 async def api_insight():
     # Read on each request so editing insight.md shows up without a restart.
     return JSONResponse({"insight": get_insight()})
+
+
+@app.get("/api/quotes")
+async def api_quotes():
+    # Read on each request so editing quotes.md shows up without a restart.
+    return JSONResponse({"quotes": get_quotes()})
 
 
 @app.get("/api/prices")
